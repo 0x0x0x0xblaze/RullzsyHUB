@@ -276,7 +276,7 @@ AuthTab:CreateParagraph({
 })
 
 local TokenInput = AuthTab:CreateInput({
-    Name = "🔒 Input Key",
+    Name = "[◉] Input Key",
     PlaceholderText = "Masukan key disini...",
     RemoveTextAfterFocusLost = false,
     Callback = function(t)
@@ -319,7 +319,7 @@ local function verifyAndLogin(token)
 end
 
 AuthTab:CreateButton({
-    Name = "🔴 Verify Key",
+    Name = "[◉] Verify Key",
     Callback = function()
         verifyAndLogin(enteredToken)
     end

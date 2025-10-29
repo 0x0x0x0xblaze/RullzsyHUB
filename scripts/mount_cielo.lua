@@ -1031,7 +1031,7 @@ local function startManualAutoWalkSequence(startCheckpoint)
             Title = "Auto Walk (Manual)",
             Content = string.format("🚶 Berjalan ke titik awal... (%.0f studs)", distance),
             Duration = 2,
-            Image = "walk"
+            Image = "bot"
         })
         
         local reached = false
@@ -1241,7 +1241,7 @@ local function playSingleCheckpointFile(fileName, checkpointIndex)
         Title = "Auto Walk (Manual)",
         Content = string.format("🚶 Menuju ke titik awal... (%.0f studs)", distance),
         Duration = 2,
-        Image = "walk"
+        Image = "bot"
     })
     
     local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -1827,7 +1827,7 @@ local CP7Toggle = AutoWalkTab:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         if Value then
-            playSingleCheckpointFile("checkpoint_6.json", 6)
+            playSingleCheckpointFile("checkpoint_7.json", 8)
             if loopingEnabled then
                 startActivityMonitor()
             end
@@ -2384,7 +2384,8 @@ local RunAnimations = {
     },
 }
 
--- Functio run animation
+-------------------------------------------------------------
+-----| FUNCTION RUN ANIMATION |-----
 local OriginalAnimations = {}
 local CurrentPack = nil
 
@@ -2436,7 +2437,8 @@ if Players.LocalPlayer.Character then
     SetupCharacter(Players.LocalPlayer.Character)
 end
 
--- Toggle
+-------------------------------------------------------------
+-----| TOGGLES RUN ANIMATION |-----
 for i = 1, 18 do
     local name = "[◉] Run Animation " .. i
     local pack = RunAnimations[name]
@@ -2448,21 +2450,9 @@ for i = 1, 18 do
         Callback = function(Value)
             if Value then
                 CurrentPack = pack
-                Rayfield:Notify({
-			        Image = "person-standing",
-                    Title = "Run Animation",
-                    Content = "Berhasil di terapkan.",
-                    Duration = 3
-                })
             elseif CurrentPack == pack then
                 CurrentPack = nil
                 RestoreOriginal()
-                Rayfield:Notify({
-			        Image = "person-standing",
-                    Title = "Run Animation",
-                    Content = "Berhasil di dimatikan.",
-                    Duration = 3
-                })
             end
 
             local Char = Players.LocalPlayer.Character

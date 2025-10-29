@@ -55,20 +55,12 @@ local ScriptTab = Window:CreateTab("List All Scripts", "layers")
 --| =========================================================== |--
 --| USER INTERFACE                                              |--
 --| =========================================================== |--
-local Section = ScriptTab:CreateSection("🔴 Total Map: 2")
+local Section = ScriptTab:CreateSection("🔴 Total Map: 1")
 
 local Divider = ScriptTab:CreateDivider()
 
 ScriptTab:CreateButton({
-	Name = "[ 1 ] Mount Yahayuk",
-	Callback = function()
-		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Yahayuk...", Duration=4})
-		loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_yahayuk.lua"))()
-	end
-})
-
-ScriptTab:CreateButton({
-	Name = "[ 2 ] Mount Cielo",
+	Name = "[◉] Mount Cielo",
 	Callback = function()
 		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Cielo...", Duration=4})
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_cielo.lua"))()
