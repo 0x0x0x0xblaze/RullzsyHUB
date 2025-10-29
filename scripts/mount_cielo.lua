@@ -2156,6 +2156,22 @@ PlayerTab:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         TimeLockEnabled = Value
+
+        if Value then
+            Rayfield:Notify({
+                Image = "user-cog",
+                Title = "Lock Time",
+                Content = "Berhasil diaktifkan.",
+                Duration = 3
+            })
+        else
+            Rayfield:Notify({
+                Image = "user-cog",
+                Title = "Lock Time",
+                Content = "Berhasil dimatikan.",
+                Duration = 3
+            })
+        end
     end,
 })
 
@@ -2179,7 +2195,8 @@ PlayerTab:CreateSlider({
 --| =========================================================== |--
 --| RUN ANIMATION                                               |--
 --| =========================================================== |--
--- Section
+
+-----| ID ANIMATION |-----
 local Section = RunAnimationTab:CreateSection("Animation Pack List")
 
 -----| ID ANIMATION |-----
@@ -2440,7 +2457,7 @@ end
 -------------------------------------------------------------
 -----| TOGGLES RUN ANIMATION |-----
 for i = 1, 18 do
-    local name = "[◉] Run Animation " .. i
+    local name = "Run Animation " .. i
     local pack = RunAnimations[name]
 
     RunAnimationTab:CreateToggle({
@@ -2450,9 +2467,21 @@ for i = 1, 18 do
         Callback = function(Value)
             if Value then
                 CurrentPack = pack
+				Rayfield:Notify({
+					Image = "person-standing",
+            		Title = "Run Animation",
+            		Content = "Berhasil diterapkan.",
+            		Duration = 3
+        		})
             elseif CurrentPack == pack then
                 CurrentPack = nil
                 RestoreOriginal()
+				Rayfield:Notify({
+					Image = "person-standing",
+            		Title = "Run Animation",
+            		Content = "Berhasil dimatikan.",
+            		Duration = 3
+        		})
             end
 
             local Char = Players.LocalPlayer.Character
