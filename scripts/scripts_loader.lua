@@ -62,7 +62,7 @@ local Divider = ScriptsTab:CreateDivider()
 local Button = ScriptsTab:CreateButton({
    Name = "[ 1 ] Mount Yahayuk",
    Callback = function()
-   loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+   loadstring(game:HttpGet('https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_yahayuk.lua'))()
    Rayfield:Notify({
    	Title = "Execute Scripts",
    	Content = "Tunggu sebentar sedang execute scripts Mount Yahayuk...",
