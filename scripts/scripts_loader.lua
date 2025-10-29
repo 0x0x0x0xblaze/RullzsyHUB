@@ -46,7 +46,7 @@ local Window = Rayfield:CreateWindow({
 })
 
 -- Tab Menu
-local ScriptsTab = Window:CreateTab("List All Scripts", "layers")
+local ScriptTab = Window:CreateTab("List All Scripts", "layers")
 
 --| =========================================================== |--
 
@@ -55,11 +55,11 @@ local ScriptsTab = Window:CreateTab("List All Scripts", "layers")
 --| =========================================================== |--
 --| USER INTERFACE                                              |--
 --| =========================================================== |--
-local Section = ScriptsTab:CreateSection("🔴 Total Map: 5")
+local Section = ScriptTab:CreateSection("🔴 Total Map: 2")
 
-local Divider = ScriptsTab:CreateDivider()
+local Divider = ScriptTab:CreateDivider()
 
-ScripstTab:CreateButton({
+ScriptTab:CreateButton({
 	Name = "[ 1 ] Mount Yahayuk",
 	Callback = function()
 		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Yahayuk...", Duration=4})
@@ -67,7 +67,7 @@ ScripstTab:CreateButton({
 	end
 })
 
-ScripstTab:CreateButton({
+ScriptTab:CreateButton({
 	Name = "[ 2 ] Mount Cielo",
 	Callback = function()
 		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Cielo...", Duration=4})
@@ -75,7 +75,7 @@ ScripstTab:CreateButton({
 	end
 })
 
-local Divider = ScriptsTab:CreateDivider()
+local Divider = ScriptTab:CreateDivider()
 --| =========================================================== |--
 --| USER INTERFACE - END                                        |--
 --| =========================================================== |--
