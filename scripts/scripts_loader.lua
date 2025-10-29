@@ -59,19 +59,13 @@ local Section = ScriptsTab:CreateSection("🔴 Total Map: 5")
 
 local Divider = ScriptsTab:CreateDivider()
 
-local Button = ScriptsTab:CreateButton({
-   Name = "[ 1 ] Mount Yahayuk",
-   Callback = function()
-   loadstring(game:HttpGet('https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_yahayuk.lua'))()
-   Rayfield:Notify({
-   	Title = "Execute Scripts",
-   	Content = "Tunggu sebentar sedang execute scripts Mount Yahayuk...",
-   	Duration = 3,
-   	Image = "file",
-   })
-   end,
+ScripstTab:CreateButton({
+	Name = "[ 1 ] Mount Yahayuk",
+	Callback = function()
+		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Yahayuk...", Duration=4})
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_yahayuk.lua"))()
+	end
 })
-
 
 local Divider = ScriptsTab:CreateDivider()
 --| =========================================================== |--
