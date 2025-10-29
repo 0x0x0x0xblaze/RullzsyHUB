@@ -141,7 +141,7 @@ end
 local API_CONFIG = {
     base_url = "https://panel.0xtunggereung.rullzsyhub.my.id/",
     validate_endpoint = "/validate.php",
-    main_script_url = "https://raw.githubusercontent.com/0x0x0x0xblaze/scripts-vip/refs/heads/main/RullzsyHUB%20-%20LOADER/main.lua"
+    main_script_url = "https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/scripts_loader.lua"
 }
 
 -- Function safe http request
