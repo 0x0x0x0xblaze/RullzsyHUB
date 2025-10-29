@@ -67,6 +67,14 @@ ScripstTab:CreateButton({
 	end
 })
 
+ScripstTab:CreateButton({
+	Name = "[ 2 ] Mount Cielo",
+	Callback = function()
+		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Cielo...", Duration=4})
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_cielo.lua"))()
+	end
+})
+
 local Divider = ScriptsTab:CreateDivider()
 --| =========================================================== |--
 --| USER INTERFACE - END                                        |--
