@@ -1445,7 +1445,7 @@ local CP5Toggle = AutoWalkTab:CreateToggle({
 --| =========================================================== |--
 --| PLAYER MENU                                                 |--
 --| =========================================================== |--
--- Section Nametag Menu
+-- Section Full Bright
 local Section = PlayerTab:CreateSection("Nametag Menu")
 
 -- Toggle Hidenametag
@@ -1523,6 +1523,108 @@ local HideNametagToggle = PlayerTab:CreateToggle({
                 Duration = 3
             })
         end
+    end,
+})
+
+-- Variable Full Bright
+local FullBrightEnabled = false
+local Lighting = game:GetService("Lighting")
+local OriginalLightingSettings = {}
+
+-- Function to save original lighting settings
+local function SaveOriginalLighting()
+    OriginalLightingSettings = {
+        Ambient = Lighting.Ambient,
+        Brightness = Lighting.Brightness,
+        ColorShift_Bottom = Lighting.ColorShift_Bottom,
+        ColorShift_Top = Lighting.ColorShift_Top,
+        EnvironmentDiffuseScale = Lighting.EnvironmentDiffuseScale,
+        EnvironmentSpecularScale = Lighting.EnvironmentSpecularScale,
+        OutdoorAmbient = Lighting.OutdoorAmbient,
+        ShadowSoftness = Lighting.ShadowSoftness,
+        GlobalShadows = Lighting.GlobalShadows,
+        FogEnd = Lighting.FogEnd,
+    }
+end
+
+-- Function to apply Full Bright
+local function ApplyFullBright(Enable)
+    if Enable then
+        -- Save original settings first
+        if not next(OriginalLightingSettings) then
+            SaveOriginalLighting()
+        end
+        
+        -- Apply Full Bright settings
+        Lighting.Ambient = Color3.new(1, 1, 1)
+        Lighting.Brightness = 2
+        Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
+        Lighting.ColorShift_Top = Color3.new(1, 1, 1)
+        Lighting.EnvironmentDiffuseScale = 1
+        Lighting.EnvironmentSpecularScale = 1
+        Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+        Lighting.ShadowSoftness = 0
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 100000
+        
+        -- Remove fog and atmosphere effects
+        for _, effect in pairs(Lighting:GetChildren()) do
+            if effect:IsA("Atmosphere") or effect:IsA("BlurEffect") or 
+               effect:IsA("ColorCorrectionEffect") or effect:IsA("SunRaysEffect") or
+               effect:IsA("BloomEffect") then
+                effect.Enabled = false
+            end
+        end
+        Rayfield:Notify({
+			Image = "user-cog",
+            Title = "Full Bright",
+            Content = "Berhasil diaktifkan.",
+            Duration = 3
+        })
+    else
+        -- Restore original lighting settings
+        if next(OriginalLightingSettings) then
+            Lighting.Ambient = OriginalLightingSettings.Ambient
+            Lighting.Brightness = OriginalLightingSettings.Brightness
+            Lighting.ColorShift_Bottom = OriginalLightingSettings.ColorShift_Bottom
+            Lighting.ColorShift_Top = OriginalLightingSettings.ColorShift_Top
+            Lighting.EnvironmentDiffuseScale = OriginalLightingSettings.EnvironmentDiffuseScale
+            Lighting.EnvironmentSpecularScale = OriginalLightingSettings.EnvironmentSpecularScale
+            Lighting.OutdoorAmbient = OriginalLightingSettings.OutdoorAmbient
+            Lighting.ShadowSoftness = OriginalLightingSettings.ShadowSoftness
+            Lighting.GlobalShadows = OriginalLightingSettings.GlobalShadows
+            Lighting.FogEnd = OriginalLightingSettings.FogEnd
+        end
+        
+        -- Re-enable effects
+        for _, effect in pairs(Lighting:GetChildren()) do
+            if effect:IsA("Atmosphere") or effect:IsA("BlurEffect") or 
+               effect:IsA("ColorCorrectionEffect") or effect:IsA("SunRaysEffect") or
+               effect:IsA("BloomEffect") then
+                effect.Enabled = true
+            end
+        end
+
+        Rayfield:Notify({
+			Image = "user-cog",
+            Title = "Full Bright",
+            Content = "Berhasil dimatikan.",
+            Duration = 3
+        })
+    end
+end
+
+-- Section Full Bright
+local Section = PlayerTab:CreateSection("Lighting Menu")
+
+-- Toggle Full Bright
+PlayerTab:CreateToggle({
+    Name = "[◉] Full Bright",
+    CurrentValue = false,
+    Flag = "FullBrightToggle",
+    Callback = function(Value)
+        FullBrightEnabled = Value
+        ApplyFullBright(FullBrightEnabled)
     end,
 })
 
