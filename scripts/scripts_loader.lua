@@ -68,10 +68,10 @@ ScriptTab:CreateButton({
 })
 
 ScriptTab:CreateButton({
-	Name = "[◉] Mount Cielo (Maintenance)",
+	Name = "[◉] Mount Funny",
 	Callback = function()
-		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Cielo...", Duration=4})
-		-- loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_cielo.lua"))()
+		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Funny...", Duration=4})
+	    loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_funny.lua"))()
 	end
 })
 
