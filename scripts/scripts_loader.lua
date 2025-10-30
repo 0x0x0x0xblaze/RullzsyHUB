@@ -55,7 +55,7 @@ local ScriptTab = Window:CreateTab("List All Scripts", "layers")
 --| =========================================================== |--
 --| USER INTERFACE                                              |--
 --| =========================================================== |--
-local Section = ScriptTab:CreateSection("🔴 Total Map: 2")
+local Section = ScriptTab:CreateSection("🔴 Total Map: 3")
 
 local Divider = ScriptTab:CreateDivider()
 
@@ -72,6 +72,14 @@ ScriptTab:CreateButton({
 	Callback = function()
 		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Funny...", Duration=4})
 	    loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_funny.lua"))()
+	end
+})
+
+ScriptTab:CreateButton({
+	Name = "[◉] Mount Age",
+	Callback = function()
+		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Age...", Duration=4})
+	    loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_age.lua"))()
 	end
 })
 
