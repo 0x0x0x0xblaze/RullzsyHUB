@@ -857,10 +857,65 @@ local function playCheckpointSequence(startIndex)
         
         currentCheckpoint = currentIndex
         
-        local checkpointName = fileName:gsub(".json", ""):gsub("_", " ")
+        -- ===== KODE PERBAIKAN DIMULAI =====
+        local hrp = character and character:FindFirstChild("HumanoidRootPart")
+        local humanoidLocal = character and character:FindFirstChildOfClass("Humanoid")
+        
+        if not hrp or not humanoidLocal then
+            Rayfield:Notify({
+                Title = "Error (Loop)",
+                Content = "Character tidak ditemukan!",
+                Duration = 4,
+                Image = "ban"
+            })
+            stopPlayback(true)
+            return
+        end
+        
+        local startPos = tableToVec(data[1].position)
+        local distance = (hrp.Position - startPos).Magnitude
+        
+        -- Jika jarak lebih dari 10 studs, berjalan ke titik awal dulu
+        if distance > 10 then
+            local reached = false
+            local moveConnection
+            
+            moveConnection = humanoidLocal.MoveToFinished:Connect(function(r)
+                reached = true
+                if moveConnection then
+                    moveConnection:Disconnect()
+                    moveConnection = nil
+                end
+            end)
+            
+            humanoidLocal:MoveTo(startPos)
+            
+            local startTime = tick()
+            local maxWaitTime = 15
+            
+            while not reached and (tick() - startTime) < maxWaitTime do
+                task.wait(0.1)
+            end
+            
+            if moveConnection then
+                moveConnection:Disconnect()
+                moveConnection = nil
+            end
+            
+            if not reached then
+                Rayfield:Notify({
+                    Title = "Auto Walk (Loop)",
+                    Content = "Gagal mencapai titik awal (timeout)!",
+                    Duration = 3,
+                    Image = "ban"
+                })
+                stopPlayback(true)
+                return
+            end
+        end
+        -- ===== KODE PERBAIKAN SELESAI =====
         
         startPlayback(data, function()
-            
             if not isLoopingEnabled or not isLoopingActive then
                 return
             end
@@ -870,6 +925,7 @@ local function playCheckpointSequence(startIndex)
             playNext()
         end)
     end
+    
     playNext()
 end
 
@@ -1337,10 +1393,10 @@ local LoopingToggle = AutoWalkTab:CreateToggle({
 -- Slider: Speed Control
 local SpeedSlider = AutoWalkTab:CreateSlider({
     Name = "[◉] Speed Auto Walk",
-    Range = {0.5, 1.3},
+    Range = {0.5, 1.1},
     Increment = 0.10,
     Suffix = "x Speed (Default 1x)",
-    CurrentValue = 0.8,
+    CurrentValue = 1.0,
     Callback = function(Value)
         playbackSpeed = Value
 
@@ -1435,7 +1491,6 @@ local CP5Toggle = AutoWalkTab:CreateToggle({
         end
     end,
 })
-
 --| =========================================================== |--
 --| AUTO WALK - END                                             |--
 --| =========================================================== |--
@@ -1445,7 +1500,7 @@ local CP5Toggle = AutoWalkTab:CreateToggle({
 --| =========================================================== |--
 --| PLAYER MENU                                                 |--
 --| =========================================================== |--
--- Section Full Bright
+-- Section Nametag Menu
 local Section = PlayerTab:CreateSection("Nametag Menu")
 
 -- Toggle Hidenametag
@@ -1523,108 +1578,6 @@ local HideNametagToggle = PlayerTab:CreateToggle({
                 Duration = 3
             })
         end
-    end,
-})
-
--- Variable Full Bright
-local FullBrightEnabled = false
-local Lighting = game:GetService("Lighting")
-local OriginalLightingSettings = {}
-
--- Function to save original lighting settings
-local function SaveOriginalLighting()
-    OriginalLightingSettings = {
-        Ambient = Lighting.Ambient,
-        Brightness = Lighting.Brightness,
-        ColorShift_Bottom = Lighting.ColorShift_Bottom,
-        ColorShift_Top = Lighting.ColorShift_Top,
-        EnvironmentDiffuseScale = Lighting.EnvironmentDiffuseScale,
-        EnvironmentSpecularScale = Lighting.EnvironmentSpecularScale,
-        OutdoorAmbient = Lighting.OutdoorAmbient,
-        ShadowSoftness = Lighting.ShadowSoftness,
-        GlobalShadows = Lighting.GlobalShadows,
-        FogEnd = Lighting.FogEnd,
-    }
-end
-
--- Function to apply Full Bright
-local function ApplyFullBright(Enable)
-    if Enable then
-        -- Save original settings first
-        if not next(OriginalLightingSettings) then
-            SaveOriginalLighting()
-        end
-        
-        -- Apply Full Bright settings
-        Lighting.Ambient = Color3.new(1, 1, 1)
-        Lighting.Brightness = 2
-        Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
-        Lighting.ColorShift_Top = Color3.new(1, 1, 1)
-        Lighting.EnvironmentDiffuseScale = 1
-        Lighting.EnvironmentSpecularScale = 1
-        Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
-        Lighting.ShadowSoftness = 0
-        Lighting.GlobalShadows = false
-        Lighting.FogEnd = 100000
-        
-        -- Remove fog and atmosphere effects
-        for _, effect in pairs(Lighting:GetChildren()) do
-            if effect:IsA("Atmosphere") or effect:IsA("BlurEffect") or 
-               effect:IsA("ColorCorrectionEffect") or effect:IsA("SunRaysEffect") or
-               effect:IsA("BloomEffect") then
-                effect.Enabled = false
-            end
-        end
-        Rayfield:Notify({
-			Image = "user-cog",
-            Title = "Full Bright",
-            Content = "Berhasil diaktifkan.",
-            Duration = 3
-        })
-    else
-        -- Restore original lighting settings
-        if next(OriginalLightingSettings) then
-            Lighting.Ambient = OriginalLightingSettings.Ambient
-            Lighting.Brightness = OriginalLightingSettings.Brightness
-            Lighting.ColorShift_Bottom = OriginalLightingSettings.ColorShift_Bottom
-            Lighting.ColorShift_Top = OriginalLightingSettings.ColorShift_Top
-            Lighting.EnvironmentDiffuseScale = OriginalLightingSettings.EnvironmentDiffuseScale
-            Lighting.EnvironmentSpecularScale = OriginalLightingSettings.EnvironmentSpecularScale
-            Lighting.OutdoorAmbient = OriginalLightingSettings.OutdoorAmbient
-            Lighting.ShadowSoftness = OriginalLightingSettings.ShadowSoftness
-            Lighting.GlobalShadows = OriginalLightingSettings.GlobalShadows
-            Lighting.FogEnd = OriginalLightingSettings.FogEnd
-        end
-        
-        -- Re-enable effects
-        for _, effect in pairs(Lighting:GetChildren()) do
-            if effect:IsA("Atmosphere") or effect:IsA("BlurEffect") or 
-               effect:IsA("ColorCorrectionEffect") or effect:IsA("SunRaysEffect") or
-               effect:IsA("BloomEffect") then
-                effect.Enabled = true
-            end
-        end
-
-        Rayfield:Notify({
-			Image = "user-cog",
-            Title = "Full Bright",
-            Content = "Berhasil dimatikan.",
-            Duration = 3
-        })
-    end
-end
-
--- Section Full Bright
-local Section = PlayerTab:CreateSection("Lighting Menu")
-
--- Toggle Full Bright
-PlayerTab:CreateToggle({
-    Name = "[◉] Full Bright",
-    CurrentValue = false,
-    Flag = "FullBrightToggle",
-    Callback = function(Value)
-        FullBrightEnabled = Value
-        ApplyFullBright(FullBrightEnabled)
     end,
 })
 
