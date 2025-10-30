@@ -51,6 +51,7 @@ local BypassTab = Window:CreateTab("Bypass", "shield")
 local AutoWalkTab = Window:CreateTab("Auto Walk", "bot")
 local PlayerTab = Window:CreateTab("Player Menu", "user-cog")
 local RunAnimationTab = Window:CreateTab("Run Animation", "person-standing")
+local ServerTab = Window:CreateTab("Finding Server", "globe")
 local UpdateTab = Window:CreateTab("Update Checkpoint", "file")
 
 -- Services
@@ -71,6 +72,7 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local humanoid = character:WaitForChild("Humanoid")
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
 --| =========================================================== |--
 
 
@@ -423,34 +425,101 @@ local jsonFiles = {
 -- Variables Auto Walk
 local isPlaying = false
 local playbackConnection = nil
-local autoLoopEnabled = false
 local currentCheckpoint = 0
-local lastActivityTime = 0
-local activityCheckConnection = nil
-local ACTIVITY_TIMEOUT = 30
-local isPaused = false
-local manualLoopEnabled = false
-local pausedTime = 0
-local pauseStartTime = 0
-local lastPlaybackTime = 0
-local accumulatedTime = 0
-local loopingEnabled = false
-local isManualMode = false
-local manualStartCheckpoint = 0
-local recordedHipHeight = nil
-local currentHipHeight = nil
-local heightOffset = 0
 local playbackSpeed = 1.0
-local lastFootstepTime = 0
-local footstepInterval = 0.35
-local leftFootstep = true
-local isFlipped = false
-local FLIP_SMOOTHNESS = 0.05
-local currentFlipRotation = CFrame.new()
+local heightOffset = 0
+
+-- Looping Variables
+local isLoopingEnabled = false
+local loopStartCheckpoint = 0
+local isLoopingActive = false
+
+-- FPS Independent & Jump/Landing State Variables
 local lastGroundedState = false
 local landingCooldown = 0
 local jumpCooldown = 0
 local lastYVelocity = 0
+local lastPlaybackTime = 0
+local accumulatedTime = 0
+
+-- Footstep
+local lastFootstepTime = 0
+local footstepInterval = 0.35
+local leftFootstep = true
+
+-- Flip Variables
+local isFlipped = false
+local FLIP_SMOOTHNESS = 0.05
+local currentFlipRotation = CFrame.new()
+
+-- Function Auto Walk
+local function playFootstepSound()
+	if not humanoid or not character then return end
+
+	pcall(function()
+		local hrp = character:FindFirstChild("HumanoidRootPart")
+		if not hrp then return end
+
+		-- Raycast ke bawah untuk deteksi material lantai
+		local rayOrigin = hrp.Position
+		local rayDirection = Vector3.new(0, -5, 0)
+		local raycastParams = RaycastParams.new()
+		raycastParams.FilterDescendantsInstances = { character }
+		raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+
+		local rayResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+		if rayResult and rayResult.Instance then
+			local material = rayResult.Material
+			local sound = Instance.new("Sound")
+			sound.Volume = 0.8
+			sound.RollOffMaxDistance = 100
+			sound.RollOffMinDistance = 10
+
+			local soundId = "rbxasset://sounds/action_footsteps_plastic.mp3"
+			if material == Enum.Material.Grass then
+				soundId = "rbxassetid://9118823107"
+			elseif material == Enum.Material.Metal then
+				soundId = "rbxassetid://260433111"
+			elseif material == Enum.Material.Sand then
+				soundId = "rbxassetid://9120089994"
+			elseif material == Enum.Material.Wood then
+				soundId = "rbxassetid://9118828605"
+			end
+
+			sound.SoundId = soundId
+			sound.Parent = hrp
+			sound:Play()
+			game:GetService("Debris"):AddItem(sound, 1)
+		end
+	end)
+end
+
+local function simulateNaturalMovement(moveDirection, velocity)
+	if not humanoid or not character then return end
+
+	local horizontalVelocity = Vector3.new(velocity.X, 0, velocity.Z)
+	local speed = horizontalVelocity.Magnitude
+
+	local onGround = false
+	pcall(function()
+		local state = humanoid:GetState()
+		onGround = (state == Enum.HumanoidStateType.Running or
+			state == Enum.HumanoidStateType.RunningNoPhysics or
+			state == Enum.HumanoidStateType.Landed)
+	end)
+
+	if speed > 0.5 and onGround then
+		local currentTime = tick()
+		local speedMultiplier = math.clamp(speed / 16, 0.3, 2)
+		local adjustedInterval = footstepInterval / (speedMultiplier * playbackSpeed)
+
+		if currentTime - lastFootstepTime >= adjustedInterval then
+			playFootstepSound()
+			lastFootstepTime = currentTime
+			leftFootstep = not leftFootstep
+		end
+	end
+end
 
 local function vecToTable(v3)
     return {x = v3.X, y = v3.Y, z = v3.Z}
@@ -476,100 +545,16 @@ local function lerpAngle(a, b, t)
 end
 
 local function isNearGround(pos, threshold)
-    threshold = threshold or 4
+    threshold = threshold or 3
     local rayOrigin = pos + Vector3.new(0, 1, 0)
     local rayDirection = Vector3.new(0, -threshold - 1, 0)
 
     local raycastParams = RaycastParams.new()
     raycastParams.FilterDescendantsInstances = {character}
-    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
 
     local result = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
     return result ~= nil, result and result.Position or nil
-end
-
-local function getGroundPosition(position)
-    if not character or not character:FindFirstChild("HumanoidRootPart") then 
-        return position 
-    end
-    
-    local rayOrigin = Vector3.new(position.X, position.Y + 10, position.Z)
-    local rayDirection = Vector3.new(0, -100, 0)
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterDescendantsInstances = {character}
-    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-    raycastParams.IgnoreWater = false
-    
-    local rayResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-    
-    if rayResult then
-        return rayResult.Position
-    end
-    
-    return position
-end
-
-local function calculateHeightOffset()
-    if not humanoid or not character then return 0 end
-    currentHipHeight = humanoid.HipHeight
-    if not recordedHipHeight then
-        recordedHipHeight = 2.0 
-    end
-    heightOffset = currentHipHeight - recordedHipHeight
-    return heightOffset
-end
-
-local function adjustPositionForAvatarSize(position)
-    if not humanoid or not character then return position end
-    local offset = calculateHeightOffset()
-    return Vector3.new(position.X, position.Y + offset, position.Z)
-end
-
-local function playFootstepSound()
-    if not humanoid or not character then return end
-    pcall(function()
-        local hrp = character:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
-        
-        local rayOrigin = hrp.Position
-        local rayDirection = Vector3.new(0, -10, 0)
-        local raycastParams = RaycastParams.new()
-        raycastParams.FilterDescendantsInstances = {character}
-        raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-        
-        local rayResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-        
-        if rayResult and rayResult.Instance then
-            local sound = Instance.new("Sound")
-            sound.Volume = 0.8
-            sound.RollOffMaxDistance = 100
-            sound.RollOffMinDistance = 10
-            sound.SoundId = "rbxasset://sounds/action_footsteps_plastic.mp3"
-            sound.Parent = hrp
-            sound:Play()
-            game:GetService("Debris"):AddItem(sound, 1)
-        end
-    end)
-end
-
-local function simulateNaturalMovement(moveDirection, velocity)
-    if not humanoid or not character then return end
-    
-    local horizontalVelocity = Vector3.new(velocity.X, 0, velocity.Z)
-    local speed = horizontalVelocity.Magnitude
-    local nearGround = isNearGround(humanoidRootPart.Position)
-    
-    if speed > 0.5 and nearGround then
-        local currentTime = tick()
-        local speedMultiplier = math.clamp(speed / 16, 0.3, 2)
-        local adjustedInterval = footstepInterval / (speedMultiplier * playbackSpeed)
-        
-        if currentTime - lastFootstepTime >= adjustedInterval then
-            playFootstepSound()
-            lastFootstepTime = currentTime
-            leftFootstep = not leftFootstep
-        end
-    end
 end
 
 local function EnsureJsonFile(fileName)
@@ -586,39 +571,36 @@ end
 
 local function loadCheckpoint(fileName)
     local filePath = jsonFolder .. "/" .. fileName
+    
     if not isfile(filePath) then
-        warn("File not found:", filePath)
         return nil
     end
-    
+
     local success, result = pcall(function()
         local jsonData = readfile(filePath)
-        if not jsonData or jsonData == "" then
-            error("Empty file")
-        end
         return HttpService:JSONDecode(jsonData)
     end)
-    
-    if success and result then
-        if result[1] and result[1].hipHeight then
-            recordedHipHeight = result[1].hipHeight
-        elseif result[1] and result[1].position then
-            local firstPos = tableToVec(result[1].position)
-            local groundPos = getGroundPosition(firstPos)
-            recordedHipHeight = firstPos.Y - groundPos.Y
-        end
+
+    if success then
         return result
     else
-        warn("❌ Load error for", fileName, ":", result)
         return nil
     end
 end
 
 local function findSurroundingFrames(data, t)
-    if #data == 0 then return nil, nil, 0 end
-    if t <= data[1].time then return 1, 1, 0 end
-    if t >= data[#data].time then return #data, #data, 0 end
-    
+    if #data == 0 then
+        return nil, nil, 0
+    end
+
+    if t <= data[1].time then
+        return 1, 1, 0
+    end
+
+    if t >= data[#data].time then
+        return #data, #data, 0
+    end
+
     local left, right = 1, #data
     while left < right - 1 do
         local mid = math.floor((left + right) / 2)
@@ -628,22 +610,21 @@ local function findSurroundingFrames(data, t)
             right = mid
         end
     end
-    
+
     local i0, i1 = left, right
     local span = data[i1].time - data[i0].time
     local alpha = span > 0 and math.clamp((t - data[i0].time) / span, 0, 1) or 0
-    
+
     return i0, i1, alpha
 end
 
-local function stopPlayback()
+local function stopPlayback(forceStopLoop)
     isPlaying = false
     isPaused = false
     pausedTime = 0
+    pauseStartTime = 0
     accumulatedTime = 0
     lastPlaybackTime = 0
-    lastFootstepTime = 0
-    recordedHipHeight = nil
     heightOffset = 0
     isFlipped = false
     currentFlipRotation = CFrame.new()
@@ -652,16 +633,15 @@ local function stopPlayback()
     jumpCooldown = 0
     lastYVelocity = 0
     
+    if forceStopLoop == true then
+        isLoopingActive = false
+    end
+
     if playbackConnection then
         playbackConnection:Disconnect()
         playbackConnection = nil
     end
-    
-    if activityCheckConnection then
-        activityCheckConnection:Disconnect()
-        activityCheckConnection = nil
-    end
-    
+
     if character and humanoid then
         humanoid:Move(Vector3.new(0, 0, 0), false)
         if humanoid:GetState() ~= Enum.HumanoidStateType.Running and
@@ -671,523 +651,233 @@ local function stopPlayback()
     end
 end
 
-local function startActivityMonitor()
-    lastActivityTime = tick()
-    
-    if activityCheckConnection then
-        activityCheckConnection:Disconnect()
-    end
-    
-    activityCheckConnection = RunService.Heartbeat:Connect(function()
-        if not autoLoopEnabled or not loopingEnabled then
-            if activityCheckConnection then
-                activityCheckConnection:Disconnect()
-                activityCheckConnection = nil
-            end
-            return
-        end
-        
-        local currentTime = tick()
-        if isPlaying then
-            lastActivityTime = currentTime
-        elseif (currentTime - lastActivityTime) > ACTIVITY_TIMEOUT then
-            warn("⚠️ Auto walk stuck detected! Restarting...")
-            stopPlayback()
-            
-            if isManualMode then
-                local restartCheckpoint = math.max(1, currentCheckpoint)
-                
-                Rayfield:Notify({
-                    Title = "Auto Walk Recovery",
-                    Content = "Mendeteksi stuck, restart dari checkpoint " .. restartCheckpoint,
-                    Duration = 3,
-                    Image = "refresh-cw"
-                })
-                
-                task.wait(2)
-                startManualAutoWalkSequence(restartCheckpoint)
-            end
-            lastActivityTime = currentTime
-        end
-    end)
+local footstepSound = Instance.new("Sound")
+footstepSound.Name = "AutoWalkFootstep"
+footstepSound.SoundId = "rbxassetid://9118823107"
+footstepSound.Volume = 1
+footstepSound.Looped = false
+footstepSound.Parent = workspace
+
+local function playFootstep()
+	if not footstepSound.IsPlaying then
+		footstepSound:Play()
+	end
 end
 
 local function startPlayback(data, onComplete)
-    if not data or #data == 0 then
-        warn("No data to play!")
-        if onComplete then onComplete() end
+	if not data or #data == 0 then  
+		if onComplete then onComplete() end
+		return
+	end
+
+	if isPlaying then
+		stopPlayback()
+	end
+
+	if character and character:FindFirstChild("HumanoidRootPart") and data[1] then
+		local firstFrame = data[1]
+		local startPos = tableToVec(firstFrame.position)
+		local startYaw = firstFrame.rotation or 0
+
+		local hrp = character.HumanoidRootPart
+		hrp.CFrame = CFrame.new(startPos) * CFrame.Angles(0, startYaw, 0)
+		hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+		hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+
+		local currentHipHeight = humanoid.HipHeight
+		local recordedHipHeight = data[1].hipHeight or 2
+		heightOffset = currentHipHeight - recordedHipHeight
+	end
+
+	isPlaying = true
+	isPaused = false
+	pausedTime = 0
+	pauseStartTime = 0
+	local playbackStartTime = tick()
+	lastPlaybackTime = playbackStartTime
+	accumulatedTime = 0
+	local lastJumping = false
+	lastGroundedState = true
+	landingCooldown = 0
+	jumpCooldown = 0
+	lastYVelocity = 0
+
+	if playbackConnection then
+		playbackConnection:Disconnect()
+		playbackConnection = nil
+	end
+
+	playbackConnection = RunService.Heartbeat:Connect(function(deltaTime)
+		if not isPlaying then return end
+
+		if isPaused then
+			if pauseStartTime == 0 then
+				pauseStartTime = tick()
+			end
+			lastPlaybackTime = tick()
+			return
+		else
+			if pauseStartTime > 0 then
+				pausedTime = pausedTime + (tick() - pauseStartTime)
+				pauseStartTime = 0
+				lastPlaybackTime = tick()
+			end
+		end
+
+		if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+		if not humanoid or humanoid.Parent ~= character then
+			humanoid = character:FindFirstChild("Humanoid")
+		end
+
+		if landingCooldown > 0 then landingCooldown -= deltaTime end
+		if jumpCooldown > 0 then jumpCooldown -= deltaTime end
+
+		local currentTime = tick()
+		local actualDelta = math.min(currentTime - lastPlaybackTime, 0.1)
+		lastPlaybackTime = currentTime
+		accumulatedTime += (actualDelta * playbackSpeed)
+		local totalDuration = data[#data].time
+
+		if accumulatedTime > totalDuration then
+			stopPlayback()
+			if onComplete then onComplete() end
+			return
+		end
+
+		local i0, i1, alpha = findSurroundingFrames(data, accumulatedTime)
+		local f0, f1 = data[i0], data[i1]
+		if not f0 or not f1 then return end
+
+		local pos0, pos1 = tableToVec(f0.position), tableToVec(f1.position)
+		local vel0, vel1 = tableToVec(f0.velocity or {x = 0, y = 0, z = 0}), tableToVec(f1.velocity or {x = 0, y = 0, z = 0})
+		local move0, move1 = tableToVec(f0.moveDirection or {x = 0, y = 0, z = 0}), tableToVec(f1.moveDirection or {x = 0, y = 0, z = 0})
+		local yaw0, yaw1 = f0.rotation or 0, f1.rotation or 0
+
+		local interpPos = lerpVector(pos0, pos1, alpha)
+		local interpVel = lerpVector(vel0, vel1, alpha)
+		local interpMove = lerpVector(move0, move1, alpha)
+		local interpYaw = lerpAngle(yaw0, yaw1, alpha)
+		local hrp = character.HumanoidRootPart
+
+		local shouldBeGrounded = (f0.state == "Running" or f0.state == "RunningNoPhysics" or f0.state == "Landed")
+		local nearGround, _ = isNearGround(hrp.Position, 4)
+
+		local correctedY = interpPos.Y + heightOffset
+		local targetCFrame = CFrame.new(interpPos.X, correctedY, interpPos.Z) * CFrame.Angles(0, interpYaw, 0)
+		local targetFlipRotation = isFlipped and CFrame.Angles(0, math.pi, 0) or CFrame.new()
+		currentFlipRotation = currentFlipRotation:Lerp(targetFlipRotation, FLIP_SMOOTHNESS)
+
+		local lerpFactor = math.clamp(1 - math.exp(-12 * actualDelta), 0, 1)
+		hrp.CFrame = hrp.CFrame:Lerp(targetCFrame * currentFlipRotation, lerpFactor)
+		simulateNaturalMovement(interpMove, interpVel)
+
+		pcall(function()
+			local currentVel = hrp.AssemblyLinearVelocity
+			local smoothedX = lerp(currentVel.X, interpVel.X, 0.75)
+			local smoothedY = lerp(currentVel.Y, interpVel.Y, 0.75)
+			local smoothedZ = lerp(currentVel.Z, interpVel.Z, 0.75)
+
+			if lastYVelocity < -5 and smoothedY > -2 and nearGround then
+				landingCooldown = 0.25
+				smoothedY = 0
+				if humanoid:GetState() ~= Enum.HumanoidStateType.Running then
+					humanoid:ChangeState(Enum.HumanoidStateType.Running)
+				end
+			end
+
+			hrp.AssemblyLinearVelocity = Vector3.new(smoothedX, smoothedY, smoothedZ)
+			lastYVelocity = smoothedY
+		end)
+
+		if humanoid then
+			local smoothedMove = humanoid.MoveDirection:Lerp(interpMove, 0.6)
+			humanoid:Move(smoothedMove, false)
+		end
+
+		-- Jump handling
+		local jumpingNow = f0.jumping or f1.jumping or false
+		if jumpingNow and not lastJumping and jumpCooldown <= 0 then
+			humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+			task.spawn(function()
+				task.wait(0.02)
+				if hrp then
+					local currentVel = hrp.AssemblyLinearVelocity
+					hrp.AssemblyLinearVelocity = Vector3.new(currentVel.X, math.max(currentVel.Y, 50), currentVel.Z)
+				end
+			end)
+			jumpCooldown = 0.6
+		end
+		lastJumping = jumpingNow
+	end)
+end
+
+local function getNextCheckpointIndex(currentIndex)
+    if currentIndex >= #jsonFiles then
+        return 1
+    else
+        return currentIndex + 1
+    end
+end
+
+local function playCheckpointSequence(startIndex)
+    if not isLoopingEnabled then
         return
     end
     
-    if isPlaying then stopPlayback() end
-    isPlaying = true
-    isPaused = false
-    pausedTime = 0
-    accumulatedTime = 0
-    local playbackStartTime = tick()
-    lastPlaybackTime = playbackStartTime
-    local lastJumping = false
-    lastGroundedState = true
-    landingCooldown = 0
-    jumpCooldown = 0
-    lastYVelocity = 0
-    calculateHeightOffset()
-    
-    if playbackConnection then
-        playbackConnection:Disconnect()
-        playbackConnection = nil
-    end
-    local first = data[1]
-    if character and character:FindFirstChild("HumanoidRootPart") then
-        local hrp = character.HumanoidRootPart
-        local firstPos = tableToVec(first.position)
-        firstPos = adjustPositionForAvatarSize(firstPos)
-        local firstYaw = first.rotation or 0
-        
-        local startCFrame = CFrame.new(firstPos) * CFrame.Angles(0, firstYaw, 0)
-        hrp.CFrame = startCFrame
-        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-        hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-
-        if humanoid then
-            humanoid:Move(tableToVec(first.moveDirection or {x=0,y=0,z=0}), false)
-        end
-        
-        task.wait(0.1)
-    end
-    
-    playbackConnection = RunService.Heartbeat:Connect(function(deltaTime)
-        if not isPlaying then return end
-        if not character or not character.Parent then
-            warn("⚠️ Character lost during playback, stopping...")
-            stopPlayback()
-            if onComplete then onComplete() end
-            return
-        end 
-        if isPaused then
-            if pauseStartTime == 0 then
-                pauseStartTime = tick()
-            end
-            lastPlaybackTime = tick()
-            return
-        else
-            if pauseStartTime > 0 then
-                pausedTime = pausedTime + (tick() - pauseStartTime)
-                pauseStartTime = 0
-                lastPlaybackTime = tick()
-            end
-        end
-        if not character:FindFirstChild("HumanoidRootPart") then 
-            warn("⚠️ HumanoidRootPart missing, stopping...")
-            stopPlayback()
-            if onComplete then onComplete() end
-            return 
-        end
-        if not humanoid or humanoid.Parent ~= character then
-            humanoid = character:FindFirstChild("Humanoid")
-            if not humanoid then
-                warn("⚠️ Humanoid missing, stopping...")
-                stopPlayback()
-                if onComplete then onComplete() end
-                return
-            end
-            calculateHeightOffset()
-        end
-        if landingCooldown > 0 then
-            landingCooldown = landingCooldown - deltaTime
-        end
-        if jumpCooldown > 0 then
-            jumpCooldown = jumpCooldown - deltaTime
-        end
-        
-        local currentTime = tick()
-        local actualDelta = currentTime - lastPlaybackTime
-        lastPlaybackTime = currentTime
-        actualDelta = math.min(actualDelta, 0.1)
-        accumulatedTime = accumulatedTime + (actualDelta * playbackSpeed)
-        local totalDuration = data[#data].time
-        if accumulatedTime > totalDuration then
-            local final = data[#data]
-            if character and character:FindFirstChild("HumanoidRootPart") then
-                local hrp = character.HumanoidRootPart
-                local finalPos = tableToVec(final.position)
-                finalPos = adjustPositionForAvatarSize(finalPos)
-                local finalYaw = final.rotation or 0
-                local targetCFrame = CFrame.new(finalPos) * CFrame.Angles(0, finalYaw, 0)
-                local targetFlipRotation = isFlipped and CFrame.Angles(0, math.pi, 0) or CFrame.new()
-                currentFlipRotation = currentFlipRotation:Lerp(targetFlipRotation, FLIP_SMOOTHNESS)
-                hrp.CFrame = targetCFrame * currentFlipRotation
-                
-                if humanoid then
-                    humanoid:Move(tableToVec(final.moveDirection or {x=0,y=0,z=0}), false)
-                end
-            end
-            
-            stopPlayback()
-            if onComplete then 
-                task.wait(0.1)
-                onComplete() 
-            end
-            return
-        end
-
-        local i0, i1, alpha = findSurroundingFrames(data, accumulatedTime)
-        local f0, f1 = data[i0], data[i1]
-        if not f0 or not f1 then return end
-        local pos0 = tableToVec(f0.position)
-        local pos1 = tableToVec(f1.position)
-        local vel0 = tableToVec(f0.velocity or {x=0,y=0,z=0})
-        local vel1 = tableToVec(f1.velocity or {x=0,y=0,z=0})
-        local move0 = tableToVec(f0.moveDirection or {x=0,y=0,z=0})
-        local move1 = tableToVec(f1.moveDirection or {x=0,y=0,z=0})
-        local yaw0 = f0.rotation or 0
-        local yaw1 = f1.rotation or 0
-        local state0 = f0.state or "Running"
-        local state1 = f1.state or "Running"
-        local interpPos = lerpVector(pos0, pos1, alpha)
-        interpPos = adjustPositionForAvatarSize(interpPos)
-        local interpVel = lerpVector(vel0, vel1, alpha)
-        local interpMove = lerpVector(move0, move1, alpha)
-        local interpYaw = lerpAngle(yaw0, yaw1, alpha)
-        local hrp = character.HumanoidRootPart
-        local shouldBeGrounded = (state0 == "Running" or state0 == "RunningNoPhysics" or state0 == "Landed") and
-                                (state1 == "Running" or state1 == "RunningNoPhysics" or state1 == "Landed")
-        
-        local nearGround, groundPos = isNearGround(hrp.Position, 4)
-        local targetCFrame = CFrame.new(interpPos) * CFrame.Angles(0, interpYaw, 0)
-        local targetFlipRotation = isFlipped and CFrame.Angles(0, math.pi, 0) or CFrame.new()
-        currentFlipRotation = currentFlipRotation:Lerp(targetFlipRotation, FLIP_SMOOTHNESS)
-        if shouldBeGrounded and nearGround and landingCooldown <= 0 then
-            local lerpFactor = math.clamp(1 - math.exp(-10 * actualDelta), 0, 1)
-            hrp.CFrame = hrp.CFrame:Lerp(targetCFrame * currentFlipRotation, lerpFactor)
-            if interpVel.Y < 0 then
-                interpVel = Vector3.new(interpVel.X, 0, interpVel.Z)
-            end
-            if humanoid:GetState() == Enum.HumanoidStateType.Freefall then
-                humanoid:ChangeState(Enum.HumanoidStateType.Landed)
-                task.wait()
-                humanoid:ChangeState(Enum.HumanoidStateType.Running)
-            end
-            
-            lastGroundedState = true
-        else
-            local lerpFactor = math.clamp(1 - math.exp(-8 * actualDelta), 0, 1)
-            hrp.CFrame = hrp.CFrame:Lerp(targetCFrame * currentFlipRotation, lerpFactor)
-            lastGroundedState = false
-        end
-        
-        pcall(function()
-            local currentVel = hrp.AssemblyLinearVelocity
-            local smoothedXVel = lerp(currentVel.X, interpVel.X, 0.7)
-            local smoothedYVel = lerp(currentVel.Y, interpVel.Y, 0.7)
-            local smoothedZVel = lerp(currentVel.Z, interpVel.Z, 0.7)
-            
-            if lastYVelocity < -5 and smoothedYVel > -2 and nearGround then
-                landingCooldown = 0.3
-                smoothedYVel = 0
-                
-                if humanoid:GetState() ~= Enum.HumanoidStateType.Running then
-                    humanoid:ChangeState(Enum.HumanoidStateType.Landed)
-                    task.wait(0.05)
-                    humanoid:ChangeState(Enum.HumanoidStateType.Running)
-                end
-            end
-            hrp.AssemblyLinearVelocity = Vector3.new(smoothedXVel, smoothedYVel, smoothedZVel)
-            lastYVelocity = smoothedYVel
-        end)
-        if humanoid then
-            local smoothedMove = humanoid.MoveDirection:Lerp(interpMove, 0.5)
-            humanoid:Move(smoothedMove, false)
-        end
-        simulateNaturalMovement(interpMove, interpVel) 
-        local jumpingNow = f0.jumping or false
-        if f1.jumping then jumpingNow = true end
-        
-        if jumpingNow and not lastJumping and jumpCooldown <= 0 then
-            local currentState = humanoid:GetState()
-            if currentState == Enum.HumanoidStateType.Running or
-                currentState == Enum.HumanoidStateType.RunningNoPhysics or
-                currentState == Enum.HumanoidStateType.Landed or
-                nearGround then
-                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-                jumpCooldown = 0.5
-            end
-        end
-        lastJumping = jumpingNow
-    end)
-end
-
-local function startAutoWalkSequence()
-    currentCheckpoint = 0
+    isLoopingActive = true
+    local currentIndex = startIndex
     
     local function playNext()
-        if not autoLoopEnabled then return end
-        
-        currentCheckpoint = currentCheckpoint + 1
-        
-        if currentCheckpoint > #jsonFiles then
-            if loopingEnabled then
-                Rayfield:Notify({
-                    Title = "Auto Walk",
-                    Content = "Semua checkpoint selesai! Looping dari awal...",
-                    Duration = 3,
-                    Image = "repeat"
-                })
-                task.wait(0.3)
-                startAutoWalkSequence()
-            else
-                autoLoopEnabled = false
-                Rayfield:Notify({
-                    Title = "Auto Walk",
-                    Content = "Auto walk selesai! Semua checkpoint sudah dilewati.",
-                    Duration = 5,
-                    Image = "check-check"
-                })
-            end
+        if not isLoopingEnabled or not isLoopingActive then
             return
         end
         
-        local checkpointFile = jsonFiles[currentCheckpoint]
-        local ok, path = EnsureJsonFile(checkpointFile)
+        local fileName = jsonFiles[currentIndex]
         
+        local ok, path = EnsureJsonFile(fileName)
         if not ok then
             Rayfield:Notify({
-                Title = "Error",
-                Content = "Failed to download checkpoint",
-                Duration = 5,
+                Title = "Error (Loop)",
+                Content = "Gagal memuat checkpoint: " .. fileName,
+                Duration = 4,
                 Image = "ban"
             })
-            autoLoopEnabled = false
+            stopPlayback(true)
             return
         end
         
-        local data = loadCheckpoint(checkpointFile)
-        
-        if data and #data > 0 then
+        local data = loadCheckpoint(fileName)
+        if not data or #data == 0 then
             Rayfield:Notify({
-                Title = "Auto Walk (Automatic)",
-                Content = "Auto walk berhasil di jalankan",
-                Duration = 2,
-                Image = "bot"
-            })
-            task.wait(0.2)
-            startPlayback(data, playNext)
-        else
-            Rayfield:Notify({
-                Title = "Error",
-                Content = "Error loading: " .. checkpointFile,
-                Duration = 5,
+                Title = "Error (Loop)",
+                Content = "Data checkpoint kosong: " .. fileName,
+                Duration = 4,
                 Image = "ban"
             })
-            autoLoopEnabled = false
-        end
-    end
-    
-    playNext()
-end
-
-local function startManualAutoWalkSequence(startCheckpoint)
-    currentCheckpoint = startCheckpoint - 1
-    isManualMode = true
-    autoLoopEnabled = true
-    
-    local function walkToStartIfNeeded(data)
-        if not character or not character:FindFirstChild("HumanoidRootPart") then
-            warn("⚠️ Character not ready, retrying in 2 seconds...")
-            task.wait(2)
-            character = player.Character
-            if not character or not character:FindFirstChild("HumanoidRootPart") then
-                return false
-            end
-        end
-        local hrp = character.HumanoidRootPart
-        if not data or not data[1] or not data[1].position then
-            return true
-        end
-        local startPos = tableToVec(data[1].position)
-        startPos = adjustPositionForAvatarSize(startPos)
-        local distance = (hrp.Position - startPos).Magnitude
-        if distance > 100 then
-            Rayfield:Notify({
-                Title = "Auto Walk (Manual)",
-                Content = string.format("Kamu berada di luar area checkpoint (%.0f studs)! Silahkan respawn/jalan ke area checkpoint dan jalankan lagi auto walk nya.", distance),
-                Duration = 5,
-                Image = "alert-triangle"
-            })
-            autoLoopEnabled = false
-            isManualMode = false
-            return false
+            stopPlayback(true)
+            return
         end
         
-        local humanoidLocal = character:FindFirstChildOfClass("Humanoid")
-        if not humanoidLocal then
-            warn("⚠️ Humanoid not found, cannot walk to start...")
-            autoLoopEnabled = false
-            isManualMode = false
-            return false
-        end
+        currentCheckpoint = currentIndex
         
-        Rayfield:Notify({
-            Title = "Auto Walk (Manual)",
-            Content = string.format("🚶 Berjalan ke titik awal... (%.0f studs)", distance),
-            Duration = 2,
-            Image = "bot"
-        })
+        local checkpointName = fileName:gsub(".json", ""):gsub("_", " ")
         
-        local reached = false
-        local moveConnection
-        
-        moveConnection = humanoidLocal.MoveToFinished:Connect(function(r)
-            reached = true
-            if moveConnection then
-                moveConnection:Disconnect()
-                moveConnection = nil
-            end
-        end)
-        
-        humanoidLocal:MoveTo(startPos)
-        
-        local startTime = tick()
-        local maxWaitTime = 15
-        
-        while not reached and (tick() - startTime) < maxWaitTime and autoLoopEnabled do
-            if not character or not character.Parent then
-                warn("⚠️ Character removed during walk, waiting for respawn...")
-                if moveConnection then
-                    moveConnection:Disconnect()
-                    moveConnection = nil
-                end
-                task.wait(3)
-                character = player.Character
-                return false
-            end
+        startPlayback(data, function()
             
-            task.wait(0.1)
-        end
-        
-        if moveConnection then
-            moveConnection:Disconnect()
-            moveConnection = nil
-        end
-        
-        if not reached then
-            Rayfield:Notify({
-                Title = "Auto Walk (Manual)",
-                Content = "Tidak bisa mencapai titik awal (timeout)!",
-                Duration = 3,
-                Image = "ban"
-            })
-            autoLoopEnabled = false
-            isManualMode = false
-            return false
-        end
-        
-        return true
-    end
-    
-    local function playNext()
-        local retryCount = 0
-        local maxRetries = 3
-        
-        while retryCount < maxRetries and autoLoopEnabled do
-            if not autoLoopEnabled then return end
-            
-            if not character or not character.Parent then
-                warn("⚠️ Character missing, waiting for respawn...")
-                retryCount = retryCount + 1
-                task.wait(3)
-                character = player.Character
-                if retryCount >= maxRetries then
-                    warn("❌ Max retries reached, stopping...")
-                    autoLoopEnabled = false
-                    isManualMode = false
-                    return
-                end
-                continue
-            end
-            
-            currentCheckpoint = currentCheckpoint + 1
-            
-            if currentCheckpoint > #jsonFiles then
-                if loopingEnabled then
-                    Rayfield:Notify({
-                        Title = "Auto Walk (Manual)",
-                        Content = "Checkpoint selesai! Looping dari awal...",
-                        Duration = 2,
-                        Image = "repeat"
-                    })
-                    task.wait(0.3)
-                    currentCheckpoint = 0
-                    continue
-                else
-                    autoLoopEnabled = false
-                    isManualMode = false
-                    Rayfield:Notify({
-                        Title = "Auto Walk (Manual)",
-                        Content = "Auto walk selesai!",
-                        Duration = 2,
-                        Image = "check-check"
-                    })
-                    return
-                end
-            end
-            
-            local checkpointFile = jsonFiles[currentCheckpoint]
-            local ok, path = EnsureJsonFile(checkpointFile)
-            
-            if not ok then
-                warn("⚠️ Failed to download, retrying...")
-                retryCount = retryCount + 1
-                task.wait(2)
-                continue
-            end
-            
-            local data = loadCheckpoint(checkpointFile)
-            
-            if not data or #data == 0 then
-                warn("⚠️ Failed to load checkpoint, retrying...")
-                retryCount = retryCount + 1
-                task.wait(2)
-                continue
-            end
-            
-            local okWalk = walkToStartIfNeeded(data)
-            
-            if not okWalk then
+            if not isLoopingEnabled or not isLoopingActive then
                 return
             end
-            
-            retryCount = 0
-            startPlayback(data, playNext)
-            return
-        end
-        
-        if autoLoopEnabled then
-            warn("❌ Max retries exceeded, stopping auto walk...")
-            autoLoopEnabled = false
-            isManualMode = false
-            Rayfield:Notify({
-                Title = "Auto Walk Error",
-                Content = "Auto walk stopped due to repeated errors",
-                Duration = 5,
-                Image = "ban"
-            })
-        end
+            task.wait(0.1)
+            local nextIndex = getNextCheckpointIndex(currentIndex)
+            currentIndex = nextIndex
+            playNext()
+        end)
     end
-    
     playNext()
 end
 
--- Functio play single checkpoint
 local function playSingleCheckpointFile(fileName, checkpointIndex)
-    if loopingEnabled then
-        stopPlayback()
-        startManualAutoWalkSequence(checkpointIndex)
-        return
-    end
-    autoLoopEnabled = false
-    isManualMode = false
-    stopPlayback()
+    stopPlayback(true)
     
     local ok, path = EnsureJsonFile(fileName)
     if not ok then
@@ -1223,29 +913,22 @@ local function playSingleCheckpointFile(fileName, checkpointIndex)
     end
     
     local startPos = tableToVec(data[1].position)
-    startPos = adjustPositionForAvatarSize(startPos)
-    
     local distance = (hrp.Position - startPos).Magnitude
     
     if distance > 100 then
         Rayfield:Notify({
-            Title = "Auto Walk (Manual)",
-            Content = string.format("Kamu berada di luar area checkpoint (%.0f studs)! Silahkan respawn/jalan ke area checkpoint dan jalankan lagi auto walk nya.", distance),
+            Title = "Auto Walk",
+            Content = string.format("Kamu berada di luar area checkpoint (%.0f studs)! Silahkan respawn/jalan ke area checkpoint.", distance),
             Duration = 5,
             Image = "alert-triangle"
         })
         return
     end
     
-    Rayfield:Notify({
-        Title = "Auto Walk (Manual)",
-        Content = string.format("🚶 Menuju ke titik awal... (%.0f studs)", distance),
-        Duration = 2,
-        Image = "bot"
-    })
+    local modeText = isLoopingEnabled and "(Loop Mode)" or "(Manual)"
     
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then
+    local humanoidLocal = character:FindFirstChildOfClass("Humanoid")
+    if not humanoidLocal then
         Rayfield:Notify({
             Title = "Error",
             Content = "Humanoid tidak ditemukan!",
@@ -1255,87 +938,60 @@ local function playSingleCheckpointFile(fileName, checkpointIndex)
         return
     end
     
-    local moving = true
-    humanoid:MoveTo(startPos)
+    local reached = false
+    local moveConnection
     
-    local reachedConnection
-    reachedConnection = humanoid.MoveToFinished:Connect(function(reached)
-        if reached then
-            moving = false
-            reachedConnection:Disconnect()
-            startPlayback(data, function()
-                Rayfield:Notify({
-                    Title = "Auto Walk (Manual)",
-                    Content = "Auto walk selesai!",
-                    Duration = 2,
-                    Image = "check-check"
-                })
-            end)
-        else
-            Rayfield:Notify({
-                Title = "Auto Walk (Manual)",
-                Content = "❌ Gagal mencapai titik awal!",
-                Duration = 3,
-                Image = "ban"
-            })
-            moving = false
-            reachedConnection:Disconnect()
+    moveConnection = humanoidLocal.MoveToFinished:Connect(function(r)
+        reached = true
+        if moveConnection then
+            moveConnection:Disconnect()
+            moveConnection = nil
         end
     end)
     
-    task.spawn(function()
-        local timeout = 20
-        local elapsed = 0
-        while moving and elapsed < timeout do
-            task.wait(1)
-            elapsed += 1
-        end
-        if moving then
+    humanoidLocal:MoveTo(startPos)
+    
+    local startTime = tick()
+    local maxWaitTime = 15
+    
+    while not reached and (tick() - startTime) < maxWaitTime do
+        task.wait(0.1)
+    end
+    
+    if moveConnection then
+        moveConnection:Disconnect()
+        moveConnection = nil
+    end
+    
+    if not reached then
+        Rayfield:Notify({
+            Title = "Auto Walk",
+            Content = "Gagal mencapai titik awal (timeout)!",
+            Duration = 3,
+            Image = "ban"
+        })
+        return
+    end
+    if isLoopingEnabled then
+        loopStartCheckpoint = checkpointIndex
+        playCheckpointSequence(checkpointIndex)
+    else
+        startPlayback(data, function()
             Rayfield:Notify({
-                Title = "Auto Walk (Manual)",
-                Content = "❌ Tidak bisa mencapai titik awal (timeout)!",
-                Duration = 3,
-                Image = "ban"
+                Title = "Auto Walk",
+                Content = "Auto walk selesai!",
+                Duration = 2,
+                Image = "check-check"
             })
-            humanoid:Move(Vector3.new(0,0,0))
-            moving = false
-            if reachedConnection then reachedConnection:Disconnect() end
-        end
-    end)
+        end)
+    end
 end
 
--- Function respawn handler
-player.CharacterAdded:Connect(function(newChar)
-    character = newChar
-    humanoid = character:WaitForChild("Humanoid")
-    humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    
-    if autoLoopEnabled and loopingEnabled then
-        warn("🔄 Character respawned, resuming auto walk in 3 seconds...")
-        task.wait(3)
-        
-        if isManualMode then
-            local resumeCheckpoint = math.max(1, currentCheckpoint)
-            Rayfield:Notify({
-                Title = "Auto Walk Resumed",
-                Content = "Melanjutkan dari checkpoint " .. resumeCheckpoint,
-                Duration = 3,
-                Image = "play"
-            })
-            startManualAutoWalkSequence(resumeCheckpoint)
-        end
-    elseif isPlaying then
-        stopPlayback()
-    end
-end)
-
--- Pause/Flip Menu UI
+-- ========== PAUSE/ROTATE UI ========== --
 local BTN_COLOR = Color3.fromRGB(38, 38, 38)
 local BTN_HOVER = Color3.fromRGB(55, 55, 55)
 local TEXT_COLOR = Color3.fromRGB(230, 230, 230)
-local WARN_COLOR = Color3.fromRGB(255, 140, 0)
 local SUCCESS_COLOR = Color3.fromRGB(0, 170, 85)
-local ROTATE_COLOR = Color3.fromRGB(100, 100, 255)
 
 local function createPauseRotateUI()
     local ui = Instance.new("ScreenGui")
@@ -1395,7 +1051,6 @@ local function createPauseRotateUI()
     mainFrame.Size = UDim2.new(1, -10, 0, 50)
     mainFrame.Parent = bgFrame
     
-    -- Drag functionality
     local dragging = false
     local dragInput, dragStart, startPos
     local UserInputService = game:GetService("UserInputService")
@@ -1491,7 +1146,6 @@ local function createPauseRotateUI()
         
         local c = Instance.new("UICorner", btn)
         c.CornerRadius = UDim.new(1, 0)
-        
         btn.MouseEnter:Connect(function()
             TweenService:Create(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad), {
                 BackgroundColor3 = BTN_HOVER,
@@ -1622,13 +1276,23 @@ end
 
 local pauseRotateUI = createPauseRotateUI()
 
--- Override stopPlayback to reset UI
 local originalStopPlayback = stopPlayback
-stopPlayback = function()
-    originalStopPlayback()
+stopPlayback = function(forceStopLoop)
+    originalStopPlayback(forceStopLoop)
     pauseRotateUI.resetUIState()
 end
 
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    humanoid = character:WaitForChild("Humanoid")
+    humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    
+    if isPlaying then
+        stopPlayback(true)
+    end
+end)
+
+-- ========== AUTO WALK UI ========== --
 -- Section: Settings
 local Section = AutoWalkTab:CreateSection("Auto Walk (Settings)")
 
@@ -1650,11 +1314,11 @@ local LoopingToggle = AutoWalkTab:CreateToggle({
    Name = "[◉] Enable Looping",
    CurrentValue = false,
    Callback = function(Value)
-       loopingEnabled = Value
+       isLoopingEnabled = Value
        if Value then
            Rayfield:Notify({
                Title = "Looping",
-               Content = "Berhasil diaktifkan!",
+               Content = "Berhasil diaktifkan! Pilih checkpoint untuk memulai loop.",
                Duration = 3,
                Image = "repeat"
            })
@@ -1665,17 +1329,21 @@ local LoopingToggle = AutoWalkTab:CreateToggle({
                Duration = 3,
                Image = "x"
            })
+           if isLoopingActive then
+               isLoopingActive = false
+               stopPlayback(true)
+           end
        end
    end,
 })
 
 -- Slider: Speed Control
 local SpeedSlider = AutoWalkTab:CreateSlider({
-    Name = "[◉] Set Speed Auto Walk",
+    Name = "[◉] Speed Auto Walk",
     Range = {0.5, 1.3},
     Increment = 0.10,
-    Suffix = "x Speed",
-    CurrentValue = 0.5,
+    Suffix = "x Speed (Default 1x)",
+    CurrentValue = 0.8,
     Callback = function(Value)
         playbackSpeed = Value
 
@@ -1700,13 +1368,8 @@ local SCPToggle = AutoWalkTab:CreateToggle({
     Callback = function(Value)
         if Value then
             playSingleCheckpointFile("spawnpoint.json", 1)
-            if loopingEnabled then
-                startActivityMonitor()
-            end
         else
-            autoLoopEnabled = false
-            isManualMode = false
-            stopPlayback()
+            stopPlayback(true)
         end
     end,
 })
@@ -1718,13 +1381,8 @@ local CP1Toggle = AutoWalkTab:CreateToggle({
     Callback = function(Value)
         if Value then
             playSingleCheckpointFile("checkpoint_1.json", 2)
-            if loopingEnabled then
-                startActivityMonitor()
-            end
         else
-            autoLoopEnabled = false
-            isManualMode = false
-            stopPlayback()
+            stopPlayback(true)
         end
     end,
 })
@@ -1736,13 +1394,8 @@ local CP2Toggle = AutoWalkTab:CreateToggle({
     Callback = function(Value)
         if Value then
             playSingleCheckpointFile("checkpoint_2.json", 3)
-            if loopingEnabled then
-                startActivityMonitor()
-            end
         else
-            autoLoopEnabled = false
-            isManualMode = false
-            stopPlayback()
+            stopPlayback(true)
         end
     end,
 })
@@ -1754,13 +1407,8 @@ local CP3Toggle = AutoWalkTab:CreateToggle({
     Callback = function(Value)
         if Value then
             playSingleCheckpointFile("checkpoint_3.json", 4)
-            if loopingEnabled then
-                startActivityMonitor()
-            end
         else
-            autoLoopEnabled = false
-            isManualMode = false
-            stopPlayback()
+            stopPlayback(true)
         end
     end,
 })
@@ -1772,13 +1420,8 @@ local CP4Toggle = AutoWalkTab:CreateToggle({
     Callback = function(Value)
         if Value then
             playSingleCheckpointFile("checkpoint_4.json", 5)
-            if loopingEnabled then
-                startActivityMonitor()
-            end
         else
-            autoLoopEnabled = false
-            isManualMode = false
-            stopPlayback()
+            stopPlayback(true)
         end
     end,
 })
@@ -1790,17 +1433,11 @@ local CP5Toggle = AutoWalkTab:CreateToggle({
     Callback = function(Value)
         if Value then
             playSingleCheckpointFile("checkpoint_5.json", 6)
-            if loopingEnabled then
-                startActivityMonitor()
-            end
         else
-            autoLoopEnabled = false
-            isManualMode = false
-            stopPlayback()
+            stopPlayback(true)
         end
     end,
 })
-
 
 -- Toggle: Checkpoint 6
 local CP6Toggle = AutoWalkTab:CreateToggle({
@@ -1809,17 +1446,11 @@ local CP6Toggle = AutoWalkTab:CreateToggle({
     Callback = function(Value)
         if Value then
             playSingleCheckpointFile("checkpoint_6.json", 7)
-            if loopingEnabled then
-                startActivityMonitor()
-            end
         else
-            autoLoopEnabled = false
-            isManualMode = false
-            stopPlayback()
+            stopPlayback(true)
         end
     end,
 })
-
 
 -- Toggle: Checkpoint 7
 local CP7Toggle = AutoWalkTab:CreateToggle({
@@ -1828,13 +1459,8 @@ local CP7Toggle = AutoWalkTab:CreateToggle({
     Callback = function(Value)
         if Value then
             playSingleCheckpointFile("checkpoint_7.json", 8)
-            if loopingEnabled then
-                startActivityMonitor()
-            end
         else
-            autoLoopEnabled = false
-            isManualMode = false
-            stopPlayback()
+            stopPlayback(true)
         end
     end,
 })
@@ -1846,13 +1472,8 @@ local CP8Toggle = AutoWalkTab:CreateToggle({
     Callback = function(Value)
         if Value then
             playSingleCheckpointFile("checkpoint_8.json", 9)
-            if loopingEnabled then
-                startActivityMonitor()
-            end
         else
-            autoLoopEnabled = false
-            isManualMode = false
-            stopPlayback()
+            stopPlayback(true)
         end
     end,
 })
@@ -1866,7 +1487,7 @@ local CP8Toggle = AutoWalkTab:CreateToggle({
 --| =========================================================== |--
 --| PLAYER MENU                                                 |--
 --| =========================================================== |--
--- Section Full Bright
+-- Section Nametag Menu
 local Section = PlayerTab:CreateSection("Nametag Menu")
 
 -- Toggle Hidenametag
@@ -1947,108 +1568,6 @@ local HideNametagToggle = PlayerTab:CreateToggle({
     end,
 })
 
--- Variable Full Bright
-local FullBrightEnabled = false
-local Lighting = game:GetService("Lighting")
-local OriginalLightingSettings = {}
-
--- Function to save original lighting settings
-local function SaveOriginalLighting()
-    OriginalLightingSettings = {
-        Ambient = Lighting.Ambient,
-        Brightness = Lighting.Brightness,
-        ColorShift_Bottom = Lighting.ColorShift_Bottom,
-        ColorShift_Top = Lighting.ColorShift_Top,
-        EnvironmentDiffuseScale = Lighting.EnvironmentDiffuseScale,
-        EnvironmentSpecularScale = Lighting.EnvironmentSpecularScale,
-        OutdoorAmbient = Lighting.OutdoorAmbient,
-        ShadowSoftness = Lighting.ShadowSoftness,
-        GlobalShadows = Lighting.GlobalShadows,
-        FogEnd = Lighting.FogEnd,
-    }
-end
-
--- Function to apply Full Bright
-local function ApplyFullBright(Enable)
-    if Enable then
-        -- Save original settings first
-        if not next(OriginalLightingSettings) then
-            SaveOriginalLighting()
-        end
-        
-        -- Apply Full Bright settings
-        Lighting.Ambient = Color3.new(1, 1, 1)
-        Lighting.Brightness = 2
-        Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
-        Lighting.ColorShift_Top = Color3.new(1, 1, 1)
-        Lighting.EnvironmentDiffuseScale = 1
-        Lighting.EnvironmentSpecularScale = 1
-        Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
-        Lighting.ShadowSoftness = 0
-        Lighting.GlobalShadows = false
-        Lighting.FogEnd = 100000
-        
-        -- Remove fog and atmosphere effects
-        for _, effect in pairs(Lighting:GetChildren()) do
-            if effect:IsA("Atmosphere") or effect:IsA("BlurEffect") or 
-               effect:IsA("ColorCorrectionEffect") or effect:IsA("SunRaysEffect") or
-               effect:IsA("BloomEffect") then
-                effect.Enabled = false
-            end
-        end
-        Rayfield:Notify({
-			Image = "user-cog",
-            Title = "Full Bright",
-            Content = "Berhasil diaktifkan.",
-            Duration = 3
-        })
-    else
-        -- Restore original lighting settings
-        if next(OriginalLightingSettings) then
-            Lighting.Ambient = OriginalLightingSettings.Ambient
-            Lighting.Brightness = OriginalLightingSettings.Brightness
-            Lighting.ColorShift_Bottom = OriginalLightingSettings.ColorShift_Bottom
-            Lighting.ColorShift_Top = OriginalLightingSettings.ColorShift_Top
-            Lighting.EnvironmentDiffuseScale = OriginalLightingSettings.EnvironmentDiffuseScale
-            Lighting.EnvironmentSpecularScale = OriginalLightingSettings.EnvironmentSpecularScale
-            Lighting.OutdoorAmbient = OriginalLightingSettings.OutdoorAmbient
-            Lighting.ShadowSoftness = OriginalLightingSettings.ShadowSoftness
-            Lighting.GlobalShadows = OriginalLightingSettings.GlobalShadows
-            Lighting.FogEnd = OriginalLightingSettings.FogEnd
-        end
-        
-        -- Re-enable effects
-        for _, effect in pairs(Lighting:GetChildren()) do
-            if effect:IsA("Atmosphere") or effect:IsA("BlurEffect") or 
-               effect:IsA("ColorCorrectionEffect") or effect:IsA("SunRaysEffect") or
-               effect:IsA("BloomEffect") then
-                effect.Enabled = true
-            end
-        end
-
-        Rayfield:Notify({
-			Image = "user-cog",
-            Title = "Full Bright",
-            Content = "Berhasil dimatikan.",
-            Duration = 3
-        })
-    end
-end
-
--- Section Full Bright
-local Section = PlayerTab:CreateSection("Lighting Menu")
-
--- Toggle Full Bright
-PlayerTab:CreateToggle({
-    Name = "[◉] Full Bright",
-    CurrentValue = false,
-    Flag = "FullBrightToggle",
-    Callback = function(Value)
-        FullBrightEnabled = Value
-        ApplyFullBright(FullBrightEnabled)
-    end,
-})
-
 -- Variable Walk Speed
 local WalkSpeedEnabled = false
 local WalkSpeedValue = 16
@@ -2111,10 +1630,10 @@ PlayerTab:CreateToggle({
 -- Slider Walk Speed
 PlayerTab:CreateSlider({
     Name = "[◉] Set Walk Speed",
-    Range = {16, 28},
+    Range = {16, 30},
     Increment = 1,
-    Suffix = "x Speed",
-    CurrentValue = 15,
+    Suffix = "x Speed (Default 16x)",
+    CurrentValue = 16,
     Flag = "WalkSpeedSlider",
     Callback = function(Value)
         WalkSpeedValue = Value
@@ -2193,7 +1712,7 @@ PlayerTab:CreateSlider({
 
 
 --| =========================================================== |--
---| RUN ANIMATION                                               |--
+--| RUN ANIMATION - SEPARATE TOGGLES                            |--
 --| =========================================================== |--
 
 -----| ID ANIMATION |-----
@@ -2402,102 +1921,1272 @@ local RunAnimations = {
 }
 
 -------------------------------------------------------------
------| FUNCTION RUN ANIMATION |-----
-local OriginalAnimations = {}
-local CurrentPack = nil
+-----| STORAGE UNTUK MASING-MASING ANIMATION |-----
+local OriginalAnimations1 = {}
+local OriginalAnimations2 = {}
+local OriginalAnimations3 = {}
+local OriginalAnimations4 = {}
+local OriginalAnimations5 = {}
+local OriginalAnimations6 = {}
+local OriginalAnimations7 = {}
+local OriginalAnimations8 = {}
+local OriginalAnimations9 = {}
+local OriginalAnimations10 = {}
+local OriginalAnimations11 = {}
+local OriginalAnimations12 = {}
+local OriginalAnimations13 = {}
+local OriginalAnimations14 = {}
+local OriginalAnimations15 = {}
+local OriginalAnimations16 = {}
+local OriginalAnimations17 = {}
+local OriginalAnimations18 = {}
 
-local function SaveOriginalAnimations(Animate)
-    OriginalAnimations = {}
+-------------------------------------------------------------
+-----| FUNGSI UNTUK RUN ANIMATION 1 |-----
+local function SaveOriginal1(Animate)
+    OriginalAnimations1 = {}
     for _, child in ipairs(Animate:GetDescendants()) do
         if child:IsA("Animation") then
-            OriginalAnimations[child] = child.AnimationId
+            OriginalAnimations1[child] = child.AnimationId
         end
     end
 end
 
-local function ApplyAnimations(Animate, Humanoid, AnimPack)
-    Animate.idle.Animation1.AnimationId = AnimPack.Idle1
-    Animate.idle.Animation2.AnimationId = AnimPack.Idle2
-    Animate.walk.WalkAnim.AnimationId   = AnimPack.Walk
-    Animate.run.RunAnim.AnimationId     = AnimPack.Run
-    Animate.jump.JumpAnim.AnimationId   = AnimPack.Jump
-    Animate.fall.FallAnim.AnimationId   = AnimPack.Fall
-    Animate.climb.ClimbAnim.AnimationId = AnimPack.Climb
-    Animate.swim.Swim.AnimationId       = AnimPack.Swim
-    Animate.swimidle.SwimIdle.AnimationId = AnimPack.SwimIdle
+local function ApplyAnimation1(Animate, Humanoid)
+    local pack = RunAnimations["Run Animation 1"]
+    Animate.idle.Animation1.AnimationId = pack.Idle1
+    Animate.idle.Animation2.AnimationId = pack.Idle2
+    Animate.walk.WalkAnim.AnimationId = pack.Walk
+    Animate.run.RunAnim.AnimationId = pack.Run
+    Animate.jump.JumpAnim.AnimationId = pack.Jump
+    Animate.fall.FallAnim.AnimationId = pack.Fall
+    Animate.climb.ClimbAnim.AnimationId = pack.Climb
+    Animate.swim.Swim.AnimationId = pack.Swim
+    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
     Humanoid.Jump = true
 end
 
-local function RestoreOriginal()
-    for anim, id in pairs(OriginalAnimations) do
+local function RestoreOriginal1()
+    for anim, id in pairs(OriginalAnimations1) do
         if anim and anim:IsA("Animation") then
             anim.AnimationId = id
         end
     end
 end
 
-local function SetupCharacter(Char)
-    local Animate = Char:WaitForChild("Animate")
-    local Humanoid = Char:WaitForChild("Humanoid")
-    SaveOriginalAnimations(Animate)
-    if CurrentPack then
-        ApplyAnimations(Animate, Humanoid, CurrentPack)
+-----| FUNGSI UNTUK RUN ANIMATION 2 |-----
+local function SaveOriginal2(Animate)
+    OriginalAnimations2 = {}
+    for _, child in ipairs(Animate:GetDescendants()) do
+        if child:IsA("Animation") then
+            OriginalAnimations2[child] = child.AnimationId
+        end
     end
 end
 
-Players.LocalPlayer.CharacterAdded:Connect(function(Char)
-    task.wait(1)
-    SetupCharacter(Char)
-end)
+local function ApplyAnimation2(Animate, Humanoid)
+    local pack = RunAnimations["Run Animation 2"]
+    Animate.idle.Animation1.AnimationId = pack.Idle1
+    Animate.idle.Animation2.AnimationId = pack.Idle2
+    Animate.walk.WalkAnim.AnimationId = pack.Walk
+    Animate.run.RunAnim.AnimationId = pack.Run
+    Animate.jump.JumpAnim.AnimationId = pack.Jump
+    Animate.fall.FallAnim.AnimationId = pack.Fall
+    Animate.climb.ClimbAnim.AnimationId = pack.Climb
+    Animate.swim.Swim.AnimationId = pack.Swim
+    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
+    Humanoid.Jump = true
+end
 
-if Players.LocalPlayer.Character then
-    SetupCharacter(Players.LocalPlayer.Character)
+local function RestoreOriginal2()
+    for anim, id in pairs(OriginalAnimations2) do
+        if anim and anim:IsA("Animation") then
+            anim.AnimationId = id
+        end
+    end
+end
+
+-----| FUNGSI UNTUK RUN ANIMATION 3 |-----
+local function SaveOriginal3(Animate)
+    OriginalAnimations3 = {}
+    for _, child in ipairs(Animate:GetDescendants()) do
+        if child:IsA("Animation") then
+            OriginalAnimations3[child] = child.AnimationId
+        end
+    end
+end
+
+local function ApplyAnimation3(Animate, Humanoid)
+    local pack = RunAnimations["Run Animation 3"]
+    Animate.idle.Animation1.AnimationId = pack.Idle1
+    Animate.idle.Animation2.AnimationId = pack.Idle2
+    Animate.walk.WalkAnim.AnimationId = pack.Walk
+    Animate.run.RunAnim.AnimationId = pack.Run
+    Animate.jump.JumpAnim.AnimationId = pack.Jump
+    Animate.fall.FallAnim.AnimationId = pack.Fall
+    Animate.climb.ClimbAnim.AnimationId = pack.Climb
+    Animate.swim.Swim.AnimationId = pack.Swim
+    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
+    Humanoid.Jump = true
+end
+
+local function RestoreOriginal3()
+    for anim, id in pairs(OriginalAnimations3) do
+        if anim and anim:IsA("Animation") then
+            anim.AnimationId = id
+        end
+    end
+end
+
+-----| FUNGSI UNTUK RUN ANIMATION 4 |-----
+local function SaveOriginal4(Animate)
+    OriginalAnimations4 = {}
+    for _, child in ipairs(Animate:GetDescendants()) do
+        if child:IsA("Animation") then
+            OriginalAnimations4[child] = child.AnimationId
+        end
+    end
+end
+
+local function ApplyAnimation4(Animate, Humanoid)
+    local pack = RunAnimations["Run Animation 4"]
+    Animate.idle.Animation1.AnimationId = pack.Idle1
+    Animate.idle.Animation2.AnimationId = pack.Idle2
+    Animate.walk.WalkAnim.AnimationId = pack.Walk
+    Animate.run.RunAnim.AnimationId = pack.Run
+    Animate.jump.JumpAnim.AnimationId = pack.Jump
+    Animate.fall.FallAnim.AnimationId = pack.Fall
+    Animate.climb.ClimbAnim.AnimationId = pack.Climb
+    Animate.swim.Swim.AnimationId = pack.Swim
+    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
+    Humanoid.Jump = true
+end
+
+local function RestoreOriginal4()
+    for anim, id in pairs(OriginalAnimations4) do
+        if anim and anim:IsA("Animation") then
+            anim.AnimationId = id
+        end
+    end
+end
+
+-----| FUNGSI UNTUK RUN ANIMATION 5 |-----
+local function SaveOriginal5(Animate)
+    OriginalAnimations5 = {}
+    for _, child in ipairs(Animate:GetDescendants()) do
+        if child:IsA("Animation") then
+            OriginalAnimations5[child] = child.AnimationId
+        end
+    end
+end
+
+local function ApplyAnimation5(Animate, Humanoid)
+    local pack = RunAnimations["Run Animation 5"]
+    Animate.idle.Animation1.AnimationId = pack.Idle1
+    Animate.idle.Animation2.AnimationId = pack.Idle2
+    Animate.walk.WalkAnim.AnimationId = pack.Walk
+    Animate.run.RunAnim.AnimationId = pack.Run
+    Animate.jump.JumpAnim.AnimationId = pack.Jump
+    Animate.fall.FallAnim.AnimationId = pack.Fall
+    Animate.climb.ClimbAnim.AnimationId = pack.Climb
+    Animate.swim.Swim.AnimationId = pack.Swim
+    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
+    Humanoid.Jump = true
+end
+
+local function RestoreOriginal5()
+    for anim, id in pairs(OriginalAnimations5) do
+        if anim and anim:IsA("Animation") then
+            anim.AnimationId = id
+        end
+    end
+end
+
+-----| FUNGSI UNTUK RUN ANIMATION 6 |-----
+local function SaveOriginal6(Animate)
+    OriginalAnimations6 = {}
+    for _, child in ipairs(Animate:GetDescendants()) do
+        if child:IsA("Animation") then
+            OriginalAnimations6[child] = child.AnimationId
+        end
+    end
+end
+
+local function ApplyAnimation6(Animate, Humanoid)
+    local pack = RunAnimations["Run Animation 6"]
+    Animate.idle.Animation1.AnimationId = pack.Idle1
+    Animate.idle.Animation2.AnimationId = pack.Idle2
+    Animate.walk.WalkAnim.AnimationId = pack.Walk
+    Animate.run.RunAnim.AnimationId = pack.Run
+    Animate.jump.JumpAnim.AnimationId = pack.Jump
+    Animate.fall.FallAnim.AnimationId = pack.Fall
+    Animate.climb.ClimbAnim.AnimationId = pack.Climb
+    Animate.swim.Swim.AnimationId = pack.Swim
+    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
+    Humanoid.Jump = true
+end
+
+local function RestoreOriginal6()
+    for anim, id in pairs(OriginalAnimations6) do
+        if anim and anim:IsA("Animation") then
+            anim.AnimationId = id
+        end
+    end
+end
+
+-----| FUNGSI UNTUK RUN ANIMATION 7 |-----
+local function SaveOriginal7(Animate)
+    OriginalAnimations7 = {}
+    for _, child in ipairs(Animate:GetDescendants()) do
+        if child:IsA("Animation") then
+            OriginalAnimations7[child] = child.AnimationId
+        end
+    end
+end
+
+local function ApplyAnimation7(Animate, Humanoid)
+    local pack = RunAnimations["Run Animation 7"]
+    Animate.idle.Animation1.AnimationId = pack.Idle1
+    Animate.idle.Animation2.AnimationId = pack.Idle2
+    Animate.walk.WalkAnim.AnimationId = pack.Walk
+    Animate.run.RunAnim.AnimationId = pack.Run
+    Animate.jump.JumpAnim.AnimationId = pack.Jump
+    Animate.fall.FallAnim.AnimationId = pack.Fall
+    Animate.climb.ClimbAnim.AnimationId = pack.Climb
+    Animate.swim.Swim.AnimationId = pack.Swim
+    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
+    Humanoid.Jump = true
+end
+
+local function RestoreOriginal7()
+    for anim, id in pairs(OriginalAnimations7) do
+        if anim and anim:IsA("Animation") then
+            anim.AnimationId = id
+        end
+    end
+end
+
+-----| FUNGSI UNTUK RUN ANIMATION 8 |-----
+local function SaveOriginal8(Animate)
+    OriginalAnimations8 = {}
+    for _, child in ipairs(Animate:GetDescendants()) do
+        if child:IsA("Animation") then
+            OriginalAnimations8[child] = child.AnimationId
+        end
+    end
+end
+
+local function ApplyAnimation8(Animate, Humanoid)
+    local pack = RunAnimations["Run Animation 8"]
+    Animate.idle.Animation1.AnimationId = pack.Idle1
+    Animate.idle.Animation2.AnimationId = pack.Idle2
+    Animate.walk.WalkAnim.AnimationId = pack.Walk
+    Animate.run.RunAnim.AnimationId = pack.Run
+    Animate.jump.JumpAnim.AnimationId = pack.Jump
+    Animate.fall.FallAnim.AnimationId = pack.Fall
+    Animate.climb.ClimbAnim.AnimationId = pack.Climb
+    Animate.swim.Swim.AnimationId = pack.Swim
+    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
+    Humanoid.Jump = true
+end
+
+local function RestoreOriginal8()
+    for anim, id in pairs(OriginalAnimations8) do
+        if anim and anim:IsA("Animation") then
+            anim.AnimationId = id
+        end
+    end
+end
+
+-----| FUNGSI UNTUK RUN ANIMATION 9 |-----
+local function SaveOriginal9(Animate)
+    OriginalAnimations9 = {}
+    for _, child in ipairs(Animate:GetDescendants()) do
+        if child:IsA("Animation") then
+            OriginalAnimations9[child] = child.AnimationId
+        end
+    end
+end
+
+local function ApplyAnimation9(Animate, Humanoid)
+    local pack = RunAnimations["Run Animation 9"]
+    Animate.idle.Animation1.AnimationId = pack.Idle1
+    Animate.idle.Animation2.AnimationId = pack.Idle2
+    Animate.walk.WalkAnim.AnimationId = pack.Walk
+    Animate.run.RunAnim.AnimationId = pack.Run
+    Animate.jump.JumpAnim.AnimationId = pack.Jump
+    Animate.fall.FallAnim.AnimationId = pack.Fall
+    Animate.climb.ClimbAnim.AnimationId = pack.Climb
+    Animate.swim.Swim.AnimationId = pack.Swim
+    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
+    Humanoid.Jump = true
+end
+
+local function RestoreOriginal9()
+    for anim, id in pairs(OriginalAnimations9) do
+        if anim and anim:IsA("Animation") then
+            anim.AnimationId = id
+        end
+    end
+end
+
+-----| FUNGSI UNTUK RUN ANIMATION 10 |-----
+local function SaveOriginal10(Animate)
+    OriginalAnimations10 = {}
+    for _, child in ipairs(Animate:GetDescendants()) do
+        if child:IsA("Animation") then
+            OriginalAnimations10[child] = child.AnimationId
+        end
+    end
+end
+
+local function ApplyAnimation10(Animate, Humanoid)
+    local pack = RunAnimations["Run Animation 10"]
+    Animate.idle.Animation1.AnimationId = pack.Idle1
+    Animate.idle.Animation2.AnimationId = pack.Idle2
+    Animate.walk.WalkAnim.AnimationId = pack.Walk
+    Animate.run.RunAnim.AnimationId = pack.Run
+    Animate.jump.JumpAnim.AnimationId = pack.Jump
+    Animate.fall.FallAnim.AnimationId = pack.Fall
+    Animate.climb.ClimbAnim.AnimationId = pack.Climb
+    Animate.swim.Swim.AnimationId = pack.Swim
+    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
+    Humanoid.Jump = true
+end
+
+local function RestoreOriginal10()
+    for anim, id in pairs(OriginalAnimations10) do
+        if anim and anim:IsA("Animation") then
+            anim.AnimationId = id
+        end
+    end
+end
+
+-----| FUNGSI UNTUK RUN ANIMATION 11 |-----
+local function SaveOriginal11(Animate)
+    OriginalAnimations11 = {}
+    for _, child in ipairs(Animate:GetDescendants()) do
+        if child:IsA("Animation") then
+            OriginalAnimations11[child] = child.AnimationId
+        end
+    end
+end
+
+local function ApplyAnimation11(Animate, Humanoid)
+    local pack = RunAnimations["Run Animation 11"]
+    Animate.idle.Animation1.AnimationId = pack.Idle1
+    Animate.idle.Animation2.AnimationId = pack.Idle2
+    Animate.walk.WalkAnim.AnimationId = pack.Walk
+    Animate.run.RunAnim.AnimationId = pack.Run
+    Animate.jump.JumpAnim.AnimationId = pack.Jump
+    Animate.fall.FallAnim.AnimationId = pack.Fall
+    Animate.climb.ClimbAnim.AnimationId = pack.Climb
+    Animate.swim.Swim.AnimationId = pack.Swim
+    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
+    Humanoid.Jump = true
+end
+
+local function RestoreOriginal11()
+    for anim, id in pairs(OriginalAnimations11) do
+        if anim and anim:IsA("Animation") then
+            anim.AnimationId = id
+        end
+    end
+end
+
+-----| FUNGSI UNTUK RUN ANIMATION 12 |-----
+local function SaveOriginal12(Animate)
+    OriginalAnimations12 = {}
+    for _, child in ipairs(Animate:GetDescendants()) do
+        if child:IsA("Animation") then
+            OriginalAnimations12[child] = child.AnimationId
+        end
+    end
+end
+
+local function ApplyAnimation12(Animate, Humanoid)
+    local pack = RunAnimations["Run Animation 12"]
+    Animate.idle.Animation1.AnimationId = pack.Idle1
+    Animate.idle.Animation2.AnimationId = pack.Idle2
+    Animate.walk.WalkAnim.AnimationId = pack.Walk
+    Animate.run.RunAnim.AnimationId = pack.Run
+    Animate.jump.JumpAnim.AnimationId = pack.Jump
+    Animate.fall.FallAnim.AnimationId = pack.Fall
+    Animate.climb.ClimbAnim.AnimationId = pack.Climb
+    Animate.swim.Swim.AnimationId = pack.Swim
+    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
+    Humanoid.Jump = true
+end
+
+local function RestoreOriginal12()
+    for anim, id in pairs(OriginalAnimations12) do
+        if anim and anim:IsA("Animation") then
+            anim.AnimationId = id
+        end
+    end
+end
+
+-----| FUNGSI UNTUK RUN ANIMATION 13 |-----
+local function SaveOriginal13(Animate)
+    OriginalAnimations13 = {}
+    for _, child in ipairs(Animate:GetDescendants()) do
+        if child:IsA("Animation") then
+            OriginalAnimations13[child] = child.AnimationId
+        end
+    end
+end
+
+local function ApplyAnimation13(Animate, Humanoid)
+    local pack = RunAnimations["Run Animation 13"]
+    Animate.idle.Animation1.AnimationId = pack.Idle1
+    Animate.idle.Animation2.AnimationId = pack.Idle2
+    Animate.walk.WalkAnim.AnimationId = pack.Walk
+    Animate.run.RunAnim.AnimationId = pack.Run
+    Animate.jump.JumpAnim.AnimationId = pack.Jump
+    Animate.fall.FallAnim.AnimationId = pack.Fall
+    Animate.climb.ClimbAnim.AnimationId = pack.Climb
+    Animate.swim.Swim.AnimationId = pack.Swim
+    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
+    Humanoid.Jump = true
+end
+
+local function RestoreOriginal13()
+    for anim, id in pairs(OriginalAnimations13) do
+        if anim and anim:IsA("Animation") then
+            anim.AnimationId = id
+        end
+    end
+end
+
+-----| FUNGSI UNTUK RUN ANIMATION 14 |-----
+local function SaveOriginal14(Animate)
+    OriginalAnimations14 = {}
+    for _, child in ipairs(Animate:GetDescendants()) do
+        if child:IsA("Animation") then
+            OriginalAnimations14[child] = child.AnimationId
+        end
+    end
+end
+
+local function ApplyAnimation14(Animate, Humanoid)
+    local pack = RunAnimations["Run Animation 14"]
+    Animate.idle.Animation1.AnimationId = pack.Idle1
+    Animate.idle.Animation2.AnimationId = pack.Idle2
+    Animate.walk.WalkAnim.AnimationId = pack.Walk
+    Animate.run.RunAnim.AnimationId = pack.Run
+    Animate.jump.JumpAnim.AnimationId = pack.Jump
+    Animate.fall.FallAnim.AnimationId = pack.Fall
+    Animate.climb.ClimbAnim.AnimationId = pack.Climb
+    Animate.swim.Swim.AnimationId = pack.Swim
+    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
+    Humanoid.Jump = true
+end
+
+local function RestoreOriginal14()
+    for anim, id in pairs(OriginalAnimations14) do
+        if anim and anim:IsA("Animation") then
+            anim.AnimationId = id
+        end
+    end
+end
+
+-----| FUNGSI UNTUK RUN ANIMATION 15 |-----
+local function SaveOriginal15(Animate)
+    OriginalAnimations15 = {}
+    for _, child in ipairs(Animate:GetDescendants()) do
+        if child:IsA("Animation") then
+            OriginalAnimations15[child] = child.AnimationId
+        end
+    end
+end
+
+local function ApplyAnimation15(Animate, Humanoid)
+    local pack = RunAnimations["Run Animation 15"]
+    Animate.idle.Animation1.AnimationId = pack.Idle1
+    Animate.idle.Animation2.AnimationId = pack.Idle2
+    Animate.walk.WalkAnim.AnimationId = pack.Walk
+    Animate.run.RunAnim.AnimationId = pack.Run
+    Animate.jump.JumpAnim.AnimationId = pack.Jump
+    Animate.fall.FallAnim.AnimationId = pack.Fall
+    Animate.climb.ClimbAnim.AnimationId = pack.Climb
+    Animate.swim.Swim.AnimationId = pack.Swim
+    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
+    Humanoid.Jump = true
+end
+
+local function RestoreOriginal15()
+    for anim, id in pairs(OriginalAnimations15) do
+        if anim and anim:IsA("Animation") then
+            anim.AnimationId = id
+        end
+    end
+end
+
+-----| FUNGSI UNTUK RUN ANIMATION 16 |-----
+local function SaveOriginal16(Animate)
+    OriginalAnimations16 = {}
+    for _, child in ipairs(Animate:GetDescendants()) do
+        if child:IsA("Animation") then
+            OriginalAnimations16[child] = child.AnimationId
+        end
+    end
+end
+
+local function ApplyAnimation16(Animate, Humanoid)
+    local pack = RunAnimations["Run Animation 16"]
+    Animate.idle.Animation1.AnimationId = pack.Idle1
+    Animate.idle.Animation2.AnimationId = pack.Idle2
+    Animate.walk.WalkAnim.AnimationId = pack.Walk
+    Animate.run.RunAnim.AnimationId = pack.Run
+    Animate.jump.JumpAnim.AnimationId = pack.Jump
+    Animate.fall.FallAnim.AnimationId = pack.Fall
+    Animate.climb.ClimbAnim.AnimationId = pack.Climb
+    Animate.swim.Swim.AnimationId = pack.Swim
+    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
+    Humanoid.Jump = true
+end
+
+local function RestoreOriginal16()
+    for anim, id in pairs(OriginalAnimations16) do
+        if anim and anim:IsA("Animation") then
+            anim.AnimationId = id
+        end
+    end
+end
+
+-----| FUNGSI UNTUK RUN ANIMATION 17 |-----
+local function SaveOriginal17(Animate)
+    OriginalAnimations17 = {}
+    for _, child in ipairs(Animate:GetDescendants()) do
+        if child:IsA("Animation") then
+            OriginalAnimations17[child] = child.AnimationId
+        end
+    end
+end
+
+local function ApplyAnimation17(Animate, Humanoid)
+    local pack = RunAnimations["Run Animation 17"]
+    Animate.idle.Animation1.AnimationId = pack.Idle1
+    Animate.idle.Animation2.AnimationId = pack.Idle2
+    Animate.walk.WalkAnim.AnimationId = pack.Walk
+    Animate.run.RunAnim.AnimationId = pack.Run
+    Animate.jump.JumpAnim.AnimationId = pack.Jump
+    Animate.fall.FallAnim.AnimationId = pack.Fall
+    Animate.climb.ClimbAnim.AnimationId = pack.Climb
+    Animate.swim.Swim.AnimationId = pack.Swim
+    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
+    Humanoid.Jump = true
+end
+
+local function RestoreOriginal17()
+    for anim, id in pairs(OriginalAnimations17) do
+        if anim and anim:IsA("Animation") then
+            anim.AnimationId = id
+        end
+    end
+end
+
+-----| FUNGSI UNTUK RUN ANIMATION 18 |-----
+local function SaveOriginal18(Animate)
+    OriginalAnimations18 = {}
+    for _, child in ipairs(Animate:GetDescendants()) do
+        if child:IsA("Animation") then
+            OriginalAnimations18[child] = child.AnimationId
+        end
+    end
+end
+
+local function ApplyAnimation18(Animate, Humanoid)
+    local pack = RunAnimations["Run Animation 18"]
+    Animate.idle.Animation1.AnimationId = pack.Idle1
+    Animate.idle.Animation2.AnimationId = pack.Idle2
+    Animate.walk.WalkAnim.AnimationId = pack.Walk
+    Animate.run.RunAnim.AnimationId = pack.Run
+    Animate.jump.JumpAnim.AnimationId = pack.Jump
+    Animate.fall.FallAnim.AnimationId = pack.Fall
+    Animate.climb.ClimbAnim.AnimationId = pack.Climb
+    Animate.swim.Swim.AnimationId = pack.Swim
+    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
+    Humanoid.Jump = true
+end
+
+local function RestoreOriginal18()
+    for anim, id in pairs(OriginalAnimations18) do
+        if anim and anim:IsA("Animation") then
+            anim.AnimationId = id
+        end
+    end
 end
 
 -------------------------------------------------------------
------| TOGGLES RUN ANIMATION |-----
-for i = 1, 18 do
-    local name = "Run Animation " .. i
-    local pack = RunAnimations[name]
-
-    RunAnimationTab:CreateToggle({
-        Name = name,
-        CurrentValue = false,
-        Flag = name .. "Toggle",
-        Callback = function(Value)
+-----| TOGGLE RUN ANIMATION 1 |-----
+RunAnimationTab:CreateToggle({
+    Name = "[◉] Run Animation 1",
+    CurrentValue = false,
+    Flag = "RunAnim1Toggle",
+    Callback = function(Value)
+        local Char = Players.LocalPlayer.Character
+        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
+            local Animate = Char.Animate
+            local Humanoid = Char.Humanoid
+            
             if Value then
-                CurrentPack = pack
-				Rayfield:Notify({
-					Image = "person-standing",
-            		Title = "Run Animation",
-            		Content = "Berhasil diterapkan.",
-            		Duration = 3
-        		})
-            elseif CurrentPack == pack then
-                CurrentPack = nil
-                RestoreOriginal()
-				Rayfield:Notify({
-					Image = "person-standing",
-            		Title = "Run Animation",
-            		Content = "Berhasil dimatikan.",
-            		Duration = 3
-        		})
+                SaveOriginal1(Animate)
+                ApplyAnimation1(Animate, Humanoid)
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 1",
+                    Content = "Berhasil diterapkan.",
+                    Duration = 3
+                })
+            else
+                RestoreOriginal1()
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 1",
+                    Content = "Berhasil dimatikan.",
+                    Duration = 3
+                })
             end
+        end
+    end,
+})
 
-            local Char = Players.LocalPlayer.Character
-            if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
-                if CurrentPack then
-                    ApplyAnimations(Char.Animate, Char.Humanoid, CurrentPack)
-                else
-                    RestoreOriginal()
-                end
+-----| TOGGLE RUN ANIMATION 2 |-----
+RunAnimationTab:CreateToggle({
+    Name = "[◉] Run Animation 2",
+    CurrentValue = false,
+    Flag = "RunAnim2Toggle",
+    Callback = function(Value)
+        local Char = Players.LocalPlayer.Character
+        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
+            local Animate = Char.Animate
+            local Humanoid = Char.Humanoid
+            
+            if Value then
+                SaveOriginal2(Animate)
+                ApplyAnimation2(Animate, Humanoid)
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 2",
+                    Content = "Berhasil diterapkan.",
+                    Duration = 3
+                })
+            else
+                RestoreOriginal2()
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 2",
+                    Content = "Berhasil dimatikan.",
+                    Duration = 3
+                })
             end
-        end,
-    })
-end
+        end
+    end,
+})
+
+-----| TOGGLE RUN ANIMATION 3 |-----
+RunAnimationTab:CreateToggle({
+    Name = "[◉] Run Animation 3",
+    CurrentValue = false,
+    Flag = "RunAnim3Toggle",
+    Callback = function(Value)
+        local Char = Players.LocalPlayer.Character
+        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
+            local Animate = Char.Animate
+            local Humanoid = Char.Humanoid
+            
+            if Value then
+                SaveOriginal3(Animate)
+                ApplyAnimation3(Animate, Humanoid)
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 3",
+                    Content = "Berhasil diterapkan.",
+                    Duration = 3
+                })
+            else
+                RestoreOriginal3()
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 3",
+                    Content = "Berhasil dimatikan.",
+                    Duration = 3
+                })
+            end
+        end
+    end,
+})
+
+-----| TOGGLE RUN ANIMATION 4 |-----
+RunAnimationTab:CreateToggle({
+    Name = "[◉] Run Animation 4",
+    CurrentValue = false,
+    Flag = "RunAnim4Toggle",
+    Callback = function(Value)
+        local Char = Players.LocalPlayer.Character
+        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
+            local Animate = Char.Animate
+            local Humanoid = Char.Humanoid
+            
+            if Value then
+                SaveOriginal4(Animate)
+                ApplyAnimation4(Animate, Humanoid)
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 4",
+                    Content = "Berhasil diterapkan.",
+                    Duration = 3
+                })
+            else
+                RestoreOriginal4()
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 4",
+                    Content = "Berhasil dimatikan.",
+                    Duration = 3
+                })
+            end
+        end
+    end,
+})
+
+-----| TOGGLE RUN ANIMATION 5 |-----
+RunAnimationTab:CreateToggle({
+    Name = "[◉] Run Animation 5",
+    CurrentValue = false,
+    Flag = "RunAnim5Toggle",
+    Callback = function(Value)
+        local Char = Players.LocalPlayer.Character
+        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
+            local Animate = Char.Animate
+            local Humanoid = Char.Humanoid
+            
+            if Value then
+                SaveOriginal5(Animate)
+                ApplyAnimation5(Animate, Humanoid)
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 5",
+                    Content = "Berhasil diterapkan.",
+                    Duration = 3
+                })
+            else
+                RestoreOriginal5()
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 5",
+                    Content = "Berhasil dimatikan.",
+                    Duration = 3
+                })
+            end
+        end
+    end,
+})
+
+-----| TOGGLE RUN ANIMATION 6 |-----
+RunAnimationTab:CreateToggle({
+    Name = "[◉] Run Animation 6",
+    CurrentValue = false,
+    Flag = "RunAnim6Toggle",
+    Callback = function(Value)
+        local Char = Players.LocalPlayer.Character
+        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
+            local Animate = Char.Animate
+            local Humanoid = Char.Humanoid
+            
+            if Value then
+                SaveOriginal6(Animate)
+                ApplyAnimation6(Animate, Humanoid)
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 6",
+                    Content = "Berhasil diterapkan.",
+                    Duration = 3
+                })
+            else
+                RestoreOriginal6()
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 6",
+                    Content = "Berhasil dimatikan.",
+                    Duration = 3
+                })
+            end
+        end
+    end,
+})
+
+-----| TOGGLE RUN ANIMATION 7 |-----
+RunAnimationTab:CreateToggle({
+    Name = "[◉] Run Animation 7",
+    CurrentValue = false,
+    Flag = "RunAnim7Toggle",
+    Callback = function(Value)
+        local Char = Players.LocalPlayer.Character
+        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
+            local Animate = Char.Animate
+            local Humanoid = Char.Humanoid
+            
+            if Value then
+                SaveOriginal7(Animate)
+                ApplyAnimation7(Animate, Humanoid)
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 7",
+                    Content = "Berhasil diterapkan.",
+                    Duration = 3
+                })
+            else
+                RestoreOriginal7()
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 7",
+                    Content = "Berhasil dimatikan.",
+                    Duration = 3
+                })
+            end
+        end
+    end,
+})
+
+-----| TOGGLE RUN ANIMATION 8 |-----
+RunAnimationTab:CreateToggle({
+    Name = "[◉] Run Animation 8",
+    CurrentValue = false,
+    Flag = "RunAnim8Toggle",
+    Callback = function(Value)
+        local Char = Players.LocalPlayer.Character
+        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
+            local Animate = Char.Animate
+            local Humanoid = Char.Humanoid
+            
+            if Value then
+                SaveOriginal8(Animate)
+                ApplyAnimation8(Animate, Humanoid)
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 8",
+                    Content = "Berhasil diterapkan.",
+                    Duration = 3
+                })
+            else
+                RestoreOriginal8()
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 8",
+                    Content = "Berhasil dimatikan.",
+                    Duration = 3
+                })
+            end
+        end
+    end,
+})
+
+-----| TOGGLE RUN ANIMATION 9 |-----
+RunAnimationTab:CreateToggle({
+    Name = "[◉] Run Animation 9",
+    CurrentValue = false,
+    Flag = "RunAnim9Toggle",
+    Callback = function(Value)
+        local Char = Players.LocalPlayer.Character
+        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
+            local Animate = Char.Animate
+            local Humanoid = Char.Humanoid
+            
+            if Value then
+                SaveOriginal9(Animate)
+                ApplyAnimation9(Animate, Humanoid)
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 9",
+                    Content = "Berhasil diterapkan.",
+                    Duration = 3
+                })
+            else
+                RestoreOriginal9()
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 9",
+                    Content = "Berhasil dimatikan.",
+                    Duration = 3
+                })
+            end
+        end
+    end,
+})
+
+-----| TOGGLE RUN ANIMATION 10 |-----
+RunAnimationTab:CreateToggle({
+    Name = "[◉] Run Animation 10",
+    CurrentValue = false,
+    Flag = "RunAnim10Toggle",
+    Callback = function(Value)
+        local Char = Players.LocalPlayer.Character
+        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
+            local Animate = Char.Animate
+            local Humanoid = Char.Humanoid
+            
+            if Value then
+                SaveOriginal10(Animate)
+                ApplyAnimation10(Animate, Humanoid)
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 10",
+                    Content = "Berhasil diterapkan.",
+                    Duration = 3
+                })
+            else
+                RestoreOriginal10()
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 10",
+                    Content = "Berhasil dimatikan.",
+                    Duration = 3
+                })
+            end
+        end
+    end,
+})
+
+-----| TOGGLE RUN ANIMATION 11 |-----
+RunAnimationTab:CreateToggle({
+    Name = "[◉] Run Animation 11",
+    CurrentValue = false,
+    Flag = "RunAnim11Toggle",
+    Callback = function(Value)
+        local Char = Players.LocalPlayer.Character
+        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
+            local Animate = Char.Animate
+            local Humanoid = Char.Humanoid
+            
+            if Value then
+                SaveOriginal11(Animate)
+                ApplyAnimation11(Animate, Humanoid)
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 11",
+                    Content = "Berhasil diterapkan.",
+                    Duration = 3
+                })
+            else
+                RestoreOriginal11()
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 11",
+                    Content = "Berhasil dimatikan.",
+                    Duration = 3
+                })
+            end
+        end
+    end,
+})
+
+-----| TOGGLE RUN ANIMATION 12 |-----
+RunAnimationTab:CreateToggle({
+    Name = "[◉] Run Animation 12",
+    CurrentValue = false,
+    Flag = "RunAnim12Toggle",
+    Callback = function(Value)
+        local Char = Players.LocalPlayer.Character
+        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
+            local Animate = Char.Animate
+            local Humanoid = Char.Humanoid
+            
+            if Value then
+                SaveOriginal12(Animate)
+                ApplyAnimation12(Animate, Humanoid)
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 12",
+                    Content = "Berhasil diterapkan.",
+                    Duration = 3
+                })
+            else
+                RestoreOriginal12()
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 12",
+                    Content = "Berhasil dimatikan.",
+                    Duration = 3
+                })
+            end
+        end
+    end,
+})
+
+-----| TOGGLE RUN ANIMATION 13 |-----
+RunAnimationTab:CreateToggle({
+    Name = "[◉] Run Animation 13",
+    CurrentValue = false,
+    Flag = "RunAnim13Toggle",
+    Callback = function(Value)
+        local Char = Players.LocalPlayer.Character
+        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
+            local Animate = Char.Animate
+            local Humanoid = Char.Humanoid
+            
+            if Value then
+                SaveOriginal13(Animate)
+                ApplyAnimation13(Animate, Humanoid)
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 13",
+                    Content = "Berhasil diterapkan.",
+                    Duration = 3
+                })
+            else
+                RestoreOriginal13()
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 13",
+                    Content = "Berhasil dimatikan.",
+                    Duration = 3
+                })
+            end
+        end
+    end,
+})
+
+-----| TOGGLE RUN ANIMATION 14 |-----
+RunAnimationTab:CreateToggle({
+    Name = "[◉] Run Animation 14",
+    CurrentValue = false,
+    Flag = "RunAnim14Toggle",
+    Callback = function(Value)
+        local Char = Players.LocalPlayer.Character
+        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
+            local Animate = Char.Animate
+            local Humanoid = Char.Humanoid
+            
+            if Value then
+                SaveOriginal14(Animate)
+                ApplyAnimation14(Animate, Humanoid)
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 14",
+                    Content = "Berhasil diterapkan.",
+                    Duration = 3
+                })
+            else
+                RestoreOriginal14()
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 14",
+                    Content = "Berhasil dimatikan.",
+                    Duration = 3
+                })
+            end
+        end
+    end,
+})
+
+-----| TOGGLE RUN ANIMATION 15 |-----
+RunAnimationTab:CreateToggle({
+    Name = "[◉] Run Animation 15",
+    CurrentValue = false,
+    Flag = "RunAnim15Toggle",
+    Callback = function(Value)
+        local Char = Players.LocalPlayer.Character
+        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
+            local Animate = Char.Animate
+            local Humanoid = Char.Humanoid
+            
+            if Value then
+                SaveOriginal15(Animate)
+                ApplyAnimation15(Animate, Humanoid)
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 15",
+                    Content = "Berhasil diterapkan.",
+                    Duration = 3
+                })
+            else
+                RestoreOriginal15()
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 15",
+                    Content = "Berhasil dimatikan.",
+                    Duration = 3
+                })
+            end
+        end
+    end,
+})
+
+-----| TOGGLE RUN ANIMATION 16 |-----
+RunAnimationTab:CreateToggle({
+    Name = "[◉] Run Animation 16",
+    CurrentValue = false,
+    Flag = "RunAnim16Toggle",
+    Callback = function(Value)
+        local Char = Players.LocalPlayer.Character
+        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
+            local Animate = Char.Animate
+            local Humanoid = Char.Humanoid
+            
+            if Value then
+                SaveOriginal16(Animate)
+                ApplyAnimation16(Animate, Humanoid)
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 16",
+                    Content = "Berhasil diterapkan.",
+                    Duration = 3
+                })
+            else
+                RestoreOriginal16()
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 16",
+                    Content = "Berhasil dimatikan.",
+                    Duration = 3
+                })
+            end
+        end
+    end,
+})
+
+-----| TOGGLE RUN ANIMATION 17 |-----
+RunAnimationTab:CreateToggle({
+    Name = "[◉] Run Animation 17",
+    CurrentValue = false,
+    Flag = "RunAnim17Toggle",
+    Callback = function(Value)
+        local Char = Players.LocalPlayer.Character
+        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
+            local Animate = Char.Animate
+            local Humanoid = Char.Humanoid
+            
+            if Value then
+                SaveOriginal16(Animate)
+                ApplyAnimation16(Animate, Humanoid)
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 17",
+                    Content = "Berhasil diterapkan.",
+                    Duration = 3
+                })
+            else
+                RestoreOriginal16()
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 17",
+                    Content = "Berhasil dimatikan.",
+                    Duration = 3
+                })
+            end
+        end
+    end,
+})
+
+-----| TOGGLE RUN ANIMATION 18 |-----
+RunAnimationTab:CreateToggle({
+    Name = "[◉] Run Animation 18",
+    CurrentValue = false,
+    Flag = "RunAnim18Toggle",
+    Callback = function(Value)
+        local Char = Players.LocalPlayer.Character
+        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
+            local Animate = Char.Animate
+            local Humanoid = Char.Humanoid
+            
+            if Value then
+                SaveOriginal16(Animate)
+                ApplyAnimation16(Animate, Humanoid)
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 18",
+                    Content = "Berhasil diterapkan.",
+                    Duration = 3
+                })
+            else
+                RestoreOriginal16()
+                Rayfield:Notify({
+                    Image = "person-standing",
+                    Title = "Run Animation 18",
+                    Content = "Berhasil dimatikan.",
+                    Duration = 3
+                })
+            end
+        end
+    end,
+})
 --| =========================================================== |--
 --| RUN ANIMATION - END                                         |--
 --| =========================================================== |--
+
+
+
+--| =========================================================== |--
+--| FINDING SERVER                                              |--
+--| =========================================================== |--
+local ServerSection = ServerTab:CreateSection("Server Menu")
+
+-- Varibale Server
+local HttpService = game:GetService("HttpService")
+local PlaceId = game.PlaceId
+local Servers = {}
+
+local function FetchServers()
+    local Cursor = ""
+    Servers = {}
+
+    repeat
+        local URL = string.format("https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=Asc&limit=100%s", PlaceId, Cursor ~= "" and "&cursor="..Cursor or "")
+        local Response = game:HttpGet(URL)
+        local Data = HttpService:JSONDecode(Response)
+
+        for _, server in pairs(Data.data) do
+            table.insert(Servers, server)
+        end
+
+        Cursor = Data.nextPageCursor
+        task.wait(0.5)
+    until not Cursor
+
+    return Servers
+end
+
+-- Function Join Server
+local function CreateServerButtons()
+    ServerTab:CreateParagraph({Title = "🔍 Mencari Server...", Content = "Tunggu sebentar sedang mencari data server..."})
+    local allServers = FetchServers()
+    ServerTab:CreateSection(" ")
+
+    for _, server in pairs(allServers) do
+        local playerCount = string.format("%d/%d", server.playing, server.maxPlayers)
+        local isSafe = server.playing <= (server.maxPlayers / 2)
+
+        local emoji = isSafe and "🟢" or "🟥"
+        local safety = isSafe and "Safe" or "No Safe"
+
+        local name = string.format("%s Server [%s] - %s", emoji, playerCount, safety)
+
+        ServerTab:CreateButton({
+            Name = name,
+            Callback = function()
+                game:GetService("TeleportService"):TeleportToPlaceInstance(PlaceId, server.id)
+            end,
+        })
+    end
+
+    ServerTab:CreateParagraph({Title = "- | Selesai! |-", Content = "Pilih salah satu server sepi di atas untuk join."})
+end
+
+-- Toggle Start Find Server
+ServerTab:CreateButton({
+    Name = "[◉] START FIND SERVER",
+    Callback = function()
+        CreateServerButtons()
+    end,
+})
+
+local Divider = ServerTab:CreateDivider()
+--| =========================================================== |--
+--| FINDING SERVER - END                                        |--
+--| =========================================================== |--
+
 
 
 --| =========================================================== |--
