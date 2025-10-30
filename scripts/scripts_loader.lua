@@ -55,7 +55,7 @@ local ScriptTab = Window:CreateTab("List All Scripts", "layers")
 --| =========================================================== |--
 --| USER INTERFACE                                              |--
 --| =========================================================== |--
-local Section = ScriptTab:CreateSection("🔴 Total Map: 3")
+local Section = ScriptTab:CreateSection("🔴 Total Map: 5")
 
 local Divider = ScriptTab:CreateDivider()
 
@@ -88,6 +88,14 @@ ScriptTab:CreateButton({
 	Callback = function()
 		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Yntkts...", Duration=4})
 	    loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_yntkts.lua"))()
+	end
+})
+
+ScriptTab:CreateButton({
+	Name = "[◉] Mount Hmmm",
+	Callback = function()
+		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Hmmm...", Duration=4})
+	    loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_hmmm.lua"))()
 	end
 })
 
