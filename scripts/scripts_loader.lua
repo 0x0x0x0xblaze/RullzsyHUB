@@ -83,6 +83,14 @@ ScriptTab:CreateButton({
 	end
 })
 
+ScriptTab:CreateButton({
+	Name = "[◉] Mount Yntkts",
+	Callback = function()
+		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Yntkts...", Duration=4})
+	    loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_yntkts.lua"))()
+	end
+})
+
 local Divider = ScriptTab:CreateDivider()
 --| =========================================================== |--
 --| USER INTERFACE - END                                        |--
