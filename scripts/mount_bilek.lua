@@ -932,7 +932,7 @@ local function playCheckpointSequence(startIndex)
             else
                 Rayfield:Notify({
                     Title = "Auto Walk",
-                    Content = "Semua checkpoint telah selesai! Silahkan click GUI BALIK BC untuk kembali ke spawnpoint.",
+                    Content = "Semua checkpoint telah selesai! Silahkan click GUI TURUN Di pojok kanan bawah untuk kembali ke basecamp.",
                     Duration = 4,
                     Image = "check-check"
                 })
