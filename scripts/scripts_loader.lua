@@ -182,7 +182,7 @@ local Paragraph = UpdateTab:CreateParagraph({
 })
 
 -- Folder target
-local targetFolder = "RullzsyHUB_VIP"
+local targetFolder = "X_RULLZSYHUB_X"
 
 -- Label status
 local Label = UpdateTab:CreateLabel("📁 STATUS: ...")
