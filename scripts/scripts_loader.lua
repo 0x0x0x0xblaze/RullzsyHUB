@@ -55,7 +55,7 @@ local ScriptTab = Window:CreateTab("List All Scripts", "layers")
 --| =========================================================== |--
 --| USER INTERFACE                                              |--
 --| =========================================================== |--
-local Section = ScriptTab:CreateSection("🔴 Total Map: 7")
+local Section = ScriptTab:CreateSection("🔴 Total Map: 8")
 
 local Divider = ScriptTab:CreateDivider()
 
@@ -112,6 +112,14 @@ ScriptTab:CreateButton({
 	Callback = function()
 		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Yacape...", Duration=4})
 	    loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_yacape.lua"))()
+	end
+})
+
+ScriptTab:CreateButton({
+	Name = "[◉] Sadewa City",
+	Callback = function()
+		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Sadewa City...", Duration=4})
+	    loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/sadewa_city.lua"))()
 	end
 })
 
