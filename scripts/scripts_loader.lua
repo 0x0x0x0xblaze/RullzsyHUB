@@ -68,6 +68,14 @@ ScriptTab:CreateButton({
 })
 
 ScriptTab:CreateButton({
+	Name = "[◉] Mount Sibuatan [REQUEST UDIN]",
+	Callback = function()
+		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Sibuatan [REQUEST UDIN]...", Duration=4})
+	    loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_sibuatan.lua"))()
+	end
+})
+
+ScriptTab:CreateButton({
 	Name = "[◉] Mount Funny",
 	Callback = function()
 		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Funny...", Duration=4})
