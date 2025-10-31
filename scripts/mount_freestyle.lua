@@ -307,7 +307,7 @@ AccountTab:CreateDivider()
 --| =========================================================== |--
 local Paragraph = BypassTab:CreateParagraph({
    Title = "Keterangan !!!",
-   Content = "⚠️ Bypass afk belum tersedia untuk mount freestyle, solusi bypass afk di server freestyle pake Auto Clicker."
+   Content = "⚠️ Bypass afk belum tersedia untuk mount yntkts, solusi bypass afk di server yntkts pake Auto Clicker."
 })
 --| =========================================================== |--
 --| BYPASS - END                                                |--
@@ -374,11 +374,6 @@ local accumulatedTime = 0
 local lastFootstepTime = 0
 local footstepInterval = 0.35
 local leftFootstep = true
-
--- Flip Variables
-local isFlipped = false
-local FLIP_SMOOTHNESS = 0.05
-local currentFlipRotation = CFrame.new()
 
 -- Function Auto Walk
 local function playFootstepSound()
@@ -554,8 +549,6 @@ local function stopPlayback(forceStopLoop)
     accumulatedTime = 0
     lastPlaybackTime = 0
     heightOffset = 0
-    isFlipped = false
-    currentFlipRotation = CFrame.new()
     lastGroundedState = false
     landingCooldown = 0
     jumpCooldown = 0
@@ -602,6 +595,7 @@ local function startPlayback(data, onComplete)
 		stopPlayback()
 	end
 
+	-- Set starting position and rotation
 	if character and character:FindFirstChild("HumanoidRootPart") and data[1] then
 		local firstFrame = data[1]
 		local startPos = tableToVec(firstFrame.position)
@@ -612,11 +606,13 @@ local function startPlayback(data, onComplete)
 		hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
 		hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
 
+		-- Calculate height offset
 		local currentHipHeight = humanoid.HipHeight
 		local recordedHipHeight = data[1].hipHeight or 2
 		heightOffset = currentHipHeight - recordedHipHeight
 	end
 
+	-- Initialize playback state
 	isPlaying = true
 	isPaused = false
 	pausedTime = 0
@@ -630,14 +626,17 @@ local function startPlayback(data, onComplete)
 	jumpCooldown = 0
 	lastYVelocity = 0
 
+	-- Disconnect existing connection
 	if playbackConnection then
 		playbackConnection:Disconnect()
 		playbackConnection = nil
 	end
 
+	-- Main playback loop
 	playbackConnection = RunService.Heartbeat:Connect(function(deltaTime)
 		if not isPlaying then return end
 
+		-- Handle pause state
 		if isPaused then
 			if pauseStartTime == 0 then
 				pauseStartTime = tick()
@@ -652,59 +651,71 @@ local function startPlayback(data, onComplete)
 			end
 		end
 
+		-- Verify character exists
 		if not character or not character:FindFirstChild("HumanoidRootPart") then return end
 		if not humanoid or humanoid.Parent ~= character then
 			humanoid = character:FindFirstChild("Humanoid")
 		end
 
+		-- Update cooldowns
 		if landingCooldown > 0 then landingCooldown -= deltaTime end
 		if jumpCooldown > 0 then jumpCooldown -= deltaTime end
 
+		-- Calculate accumulated time (FPS independent)
 		local currentTime = tick()
 		local actualDelta = math.min(currentTime - lastPlaybackTime, 0.1)
 		lastPlaybackTime = currentTime
 		accumulatedTime += (actualDelta * playbackSpeed)
 		local totalDuration = data[#data].time
 
+		-- Check if playback is complete
 		if accumulatedTime > totalDuration then
 			stopPlayback()
 			if onComplete then onComplete() end
 			return
 		end
 
+		-- Find surrounding frames for interpolation
 		local i0, i1, alpha = findSurroundingFrames(data, accumulatedTime)
 		local f0, f1 = data[i0], data[i1]
 		if not f0 or not f1 then return end
 
+		-- Extract frame data
 		local pos0, pos1 = tableToVec(f0.position), tableToVec(f1.position)
 		local vel0, vel1 = tableToVec(f0.velocity or {x = 0, y = 0, z = 0}), tableToVec(f1.velocity or {x = 0, y = 0, z = 0})
 		local move0, move1 = tableToVec(f0.moveDirection or {x = 0, y = 0, z = 0}), tableToVec(f1.moveDirection or {x = 0, y = 0, z = 0})
 		local yaw0, yaw1 = f0.rotation or 0, f1.rotation or 0
 
+		-- Interpolate values
 		local interpPos = lerpVector(pos0, pos1, alpha)
 		local interpVel = lerpVector(vel0, vel1, alpha)
 		local interpMove = lerpVector(move0, move1, alpha)
 		local interpYaw = lerpAngle(yaw0, yaw1, alpha)
 		local hrp = character.HumanoidRootPart
 
+		-- Ground detection
 		local shouldBeGrounded = (f0.state == "Running" or f0.state == "RunningNoPhysics" or f0.state == "Landed")
 		local nearGround, _ = isNearGround(hrp.Position, 4)
 
+		-- Apply position and rotation (WITHOUT FLIP)
 		local correctedY = interpPos.Y + heightOffset
 		local targetCFrame = CFrame.new(interpPos.X, correctedY, interpPos.Z) * CFrame.Angles(0, interpYaw, 0)
-		local targetFlipRotation = isFlipped and CFrame.Angles(0, math.pi, 0) or CFrame.new()
-		currentFlipRotation = currentFlipRotation:Lerp(targetFlipRotation, FLIP_SMOOTHNESS)
 
+		-- Smooth CFrame interpolation
 		local lerpFactor = math.clamp(1 - math.exp(-12 * actualDelta), 0, 1)
-		hrp.CFrame = hrp.CFrame:Lerp(targetCFrame * currentFlipRotation, lerpFactor)
+		hrp.CFrame = hrp.CFrame:Lerp(targetCFrame, lerpFactor)
+		
+		-- Simulate natural movement (footsteps, etc)
 		simulateNaturalMovement(interpMove, interpVel)
 
+		-- Apply velocity with smoothing
 		pcall(function()
 			local currentVel = hrp.AssemblyLinearVelocity
 			local smoothedX = lerp(currentVel.X, interpVel.X, 0.75)
 			local smoothedY = lerp(currentVel.Y, interpVel.Y, 0.75)
 			local smoothedZ = lerp(currentVel.Z, interpVel.Z, 0.75)
 
+			-- Landing detection
 			if lastYVelocity < -5 and smoothedY > -2 and nearGround then
 				landingCooldown = 0.25
 				smoothedY = 0
@@ -717,6 +728,7 @@ local function startPlayback(data, onComplete)
 			lastYVelocity = smoothedY
 		end)
 
+		-- Apply move direction
 		if humanoid then
 			local smoothedMove = humanoid.MoveDirection:Lerp(interpMove, 0.6)
 			humanoid:Move(smoothedMove, false)
@@ -971,7 +983,7 @@ local function playSingleCheckpointFile(fileName, checkpointIndex)
     end
 end
 
--- ========== PAUSE/ROTATE UI ========== --
+-- ========== PAUSE UI (ONLY) ========== --
 local BTN_COLOR = Color3.fromRGB(38, 38, 38)
 local BTN_HOVER = Color3.fromRGB(55, 55, 55)
 local TEXT_COLOR = Color3.fromRGB(230, 230, 230)
@@ -985,6 +997,7 @@ local function createPauseRotateUI()
     ui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ui.Parent = CoreGui
     
+    -- Background Frame (lebih kecil karena hanya 1 tombol)
     local bgFrame = Instance.new("Frame")
     bgFrame.Name = "PR_Background"
     bgFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -992,13 +1005,14 @@ local function createPauseRotateUI()
     bgFrame.BorderSizePixel = 0
     bgFrame.AnchorPoint = Vector2.new(0.5, 0.5)
     bgFrame.Position = UDim2.new(0.5, 0, 0.85, 0)
-    bgFrame.Size = UDim2.new(0, 130, 0, 70)
+    bgFrame.Size = UDim2.new(0, 80, 0, 70) -- Lebih kecil karena 1 button
     bgFrame.Visible = false
     bgFrame.Parent = ui
     
     local bgCorner = Instance.new("UICorner", bgFrame)
     bgCorner.CornerRadius = UDim.new(0, 20)
     
+    -- Drag Indicator (3 dots)
     local dragIndicator = Instance.new("Frame")
     dragIndicator.Name = "DragIndicator"
     dragIndicator.BackgroundTransparency = 1
@@ -1013,6 +1027,7 @@ local function createPauseRotateUI()
     dotLayout.VerticalAlignment = Enum.VerticalAlignment.Center
     dotLayout.Padding = UDim.new(0, 6)
     
+    -- Create 3 dots
     for i = 1, 3 do
         local dot = Instance.new("Frame")
         dot.Name = "Dot" .. i
@@ -1026,6 +1041,7 @@ local function createPauseRotateUI()
         dotCorner.CornerRadius = UDim.new(1, 0)
     end
     
+    -- Main Frame untuk button
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "PR_Main"
     mainFrame.BackgroundTransparency = 1
@@ -1035,6 +1051,7 @@ local function createPauseRotateUI()
     mainFrame.Size = UDim2.new(1, -10, 0, 50)
     mainFrame.Parent = bgFrame
     
+    -- ========== DRAG FUNCTIONALITY ========== --
     local dragging = false
     local dragInput, dragStart, startPos
     local UserInputService = game:GetService("UserInputService")
@@ -1056,6 +1073,7 @@ local function createPauseRotateUI()
             dragStart = input.Position
             startPos = bgFrame.Position
             
+            -- Animasi dots saat drag
             for i, dot in ipairs(dragIndicator:GetChildren()) do
                 if dot:IsA("Frame") then
                     TweenService:Create(dot, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
@@ -1068,6 +1086,7 @@ local function createPauseRotateUI()
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
+                    -- Reset dots
                     for i, dot in ipairs(dragIndicator:GetChildren()) do
                         if dot:IsA("Frame") then
                             TweenService:Create(dot, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
@@ -1097,6 +1116,7 @@ local function createPauseRotateUI()
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             if dragging then
                 dragging = false
+                -- Reset dots
                 for i, dot in ipairs(dragIndicator:GetChildren()) do
                     if dot:IsA("Frame") then
                         TweenService:Create(dot, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
@@ -1109,69 +1129,72 @@ local function createPauseRotateUI()
         end
     end)
     
+    -- Layout untuk center button
     local layout = Instance.new("UIListLayout", mainFrame)
     layout.FillDirection = Enum.FillDirection.Horizontal
     layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     layout.VerticalAlignment = Enum.VerticalAlignment.Center
-    layout.Padding = UDim.new(0, 10)
+    layout.Padding = UDim.new(0, 0)
     
-    local function createButton(emoji, color)
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0, 50, 0, 50)
-        btn.BackgroundColor3 = BTN_COLOR
-        btn.BackgroundTransparency = 0.1
-        btn.TextColor3 = TEXT_COLOR
-        btn.Font = Enum.Font.GothamBold
-        btn.TextSize = 24
-        btn.Text = emoji
-        btn.AutoButtonColor = false
-        btn.BorderSizePixel = 0
-        btn.Parent = mainFrame
-        
-        local c = Instance.new("UICorner", btn)
-        c.CornerRadius = UDim.new(1, 0)
-        btn.MouseEnter:Connect(function()
-            TweenService:Create(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad), {
-                BackgroundColor3 = BTN_HOVER,
-                Size = UDim2.new(0, 54, 0, 54)
-            }):Play()
-        end)
-        
-        btn.MouseLeave:Connect(function()
-            TweenService:Create(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad), {
-                BackgroundColor3 = color or BTN_COLOR,
-                Size = UDim2.new(0, 50, 0, 50)
-            }):Play()
-        end)
-        
-        return btn
-    end
+    -- ========== CREATE PAUSE/RESUME BUTTON ========== --
+    local pauseResumeBtn = Instance.new("TextButton")
+    pauseResumeBtn.Size = UDim2.new(0, 50, 0, 50)
+    pauseResumeBtn.BackgroundColor3 = BTN_COLOR
+    pauseResumeBtn.BackgroundTransparency = 0.1
+    pauseResumeBtn.TextColor3 = TEXT_COLOR
+    pauseResumeBtn.Font = Enum.Font.GothamBold
+    pauseResumeBtn.TextSize = 24
+    pauseResumeBtn.Text = "⏸️"
+    pauseResumeBtn.AutoButtonColor = false
+    pauseResumeBtn.BorderSizePixel = 0
+    pauseResumeBtn.Parent = mainFrame
     
-    local pauseResumeBtn = createButton("⏸️", BTN_COLOR)
-    local rotateBtn = createButton("🔄", BTN_COLOR)
+    local btnCorner = Instance.new("UICorner", pauseResumeBtn)
+    btnCorner.CornerRadius = UDim.new(1, 0)
     
+    -- Hover effect
+    pauseResumeBtn.MouseEnter:Connect(function()
+        TweenService:Create(pauseResumeBtn, TweenInfo.new(0.12, Enum.EasingStyle.Quad), {
+            BackgroundColor3 = BTN_HOVER,
+            Size = UDim2.new(0, 54, 0, 54)
+        }):Play()
+    end)
+    
+    pauseResumeBtn.MouseLeave:Connect(function()
+        local targetColor = currentlyPaused and SUCCESS_COLOR or BTN_COLOR
+        TweenService:Create(pauseResumeBtn, TweenInfo.new(0.12, Enum.EasingStyle.Quad), {
+            BackgroundColor3 = targetColor,
+            Size = UDim2.new(0, 50, 0, 50)
+        }):Play()
+    end)
+    
+    -- State variable
     local currentlyPaused = false
+    
+    -- Tween settings untuk show/hide
     local tweenTime = 0.25
     local showScale = 1
     local hideScale = 0
     
+    -- Show/Hide functions
     local function showUI()
         bgFrame.Visible = true
-        bgFrame.Size = UDim2.new(0, 130 * hideScale, 0, 70 * hideScale)
+        bgFrame.Size = UDim2.new(0, 80 * hideScale, 0, 70 * hideScale)
         TweenService:Create(bgFrame, TweenInfo.new(tweenTime, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-            Size = UDim2.new(0, 130 * showScale, 0, 70 * showScale)
+            Size = UDim2.new(0, 80 * showScale, 0, 70 * showScale)
         }):Play()
     end
     
     local function hideUI()
         TweenService:Create(bgFrame, TweenInfo.new(tweenTime, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-            Size = UDim2.new(0, 130 * hideScale, 0, 70 * hideScale)
+            Size = UDim2.new(0, 80 * hideScale, 0, 70 * hideScale)
         }):Play()
         task.delay(tweenTime, function()
             bgFrame.Visible = false
         end)
     end
     
+    -- ========== PAUSE/RESUME BUTTON CLICK ========== --
     pauseResumeBtn.MouseButton1Click:Connect(function()
         if not isPlaying then
             Rayfield:Notify({
@@ -1184,6 +1207,7 @@ local function createPauseRotateUI()
         end
         
         if not currentlyPaused then
+            -- PAUSE
             isPaused = true
             currentlyPaused = true
             pauseResumeBtn.Text = "▶️"
@@ -1195,6 +1219,7 @@ local function createPauseRotateUI()
                 Image = "pause"
             })
         else
+            -- RESUME
             isPaused = false
             currentlyPaused = false
             pauseResumeBtn.Text = "⏸️"
@@ -1208,48 +1233,14 @@ local function createPauseRotateUI()
         end
     end)
     
-    rotateBtn.MouseButton1Click:Connect(function()
-        if not isPlaying then
-            Rayfield:Notify({
-                Title = "Rotate",
-                Content = "Auto walk harus berjalan terlebih dahulu!",
-                Duration = 3,
-                Image = "alert-triangle"
-            })
-            return
-        end
-        
-        isFlipped = not isFlipped
-        if isFlipped then
-            rotateBtn.Text = "🔃"
-            rotateBtn.BackgroundColor3 = SUCCESS_COLOR
-            Rayfield:Notify({
-                Title = "Rotate",
-                Content = "Jalan mundur diaktifkan",
-                Duration = 2,
-                Image = "rotate-cw"
-            })
-        else
-            rotateBtn.Text = "🔄"
-            rotateBtn.BackgroundColor3 = BTN_COLOR
-            Rayfield:Notify({
-                Title = "Rotate",
-                Content = "Jalan mundur dimatikan",
-                Duration = 2,
-                Image = "rotate-ccw"
-            })
-        end
-    end)
-    
+    -- Reset UI state function
     local function resetUIState()
         currentlyPaused = false
         pauseResumeBtn.Text = "⏸️"
         pauseResumeBtn.BackgroundColor3 = BTN_COLOR
-        isFlipped = false
-        rotateBtn.Text = "🔄"
-        rotateBtn.BackgroundColor3 = BTN_COLOR
     end
 
+    -- Return UI controls
     return {
         mainFrame = bgFrame,
         showUI = showUI,
@@ -1260,21 +1251,12 @@ end
 
 local pauseRotateUI = createPauseRotateUI()
 
+-- Override stopPlayback untuk reset UI
 local originalStopPlayback = stopPlayback
 stopPlayback = function(forceStopLoop)
     originalStopPlayback(forceStopLoop)
     pauseRotateUI.resetUIState()
 end
-
-player.CharacterAdded:Connect(function(newChar)
-    character = newChar
-    humanoid = character:WaitForChild("Humanoid")
-    humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    
-    if isPlaying then
-        stopPlayback(true)
-    end
-end)
 
 -- ========== AUTO WALK UI ========== --
 -- Section: Settings
@@ -1282,7 +1264,7 @@ local Section = AutoWalkTab:CreateSection("Auto Walk (Settings)")
 
 -- Toggle: Pause/Rotate Menu
 local Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Pause/Flip Menu",
+    Name = "[◉] Pause/Resume Menu",
     CurrentValue = false,
     Callback = function(Value)
         if Value then
