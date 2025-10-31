@@ -47,6 +47,7 @@ local Window = Rayfield:CreateWindow({
 
 -- Tab Menu
 local ScriptTab = Window:CreateTab("List All Scripts", "layers")
+local UpdateTab = Window:CreateTab("Update Script", "file")
 
 --| =========================================================== |--
 
@@ -167,4 +168,83 @@ ScriptTab:CreateButton({
 local Divider = ScriptTab:CreateDivider()
 --| =========================================================== |--
 --| USER INTERFACE - END                                        |--
+--| =========================================================== |--
+
+
+
+--| =========================================================== |--
+--| UPDATE SCRIPT                                               |--
+--| =========================================================== |--
+local Section = UpdateTab:CreateSection("Update Script Menu")
+local Paragraph = UpdateTab:CreateParagraph({
+	Title = "Keterangan !!!",
+	Content = "Jalankan update script menu, untuk mengupdate ke versi terbaru." .. "\n\n" .. "Panduan Cara Update:" .. "\n" .. "1. Jalankan toggle RUN UPDATE SCRIPT" .. "\n" .. "2. Tunggu sampai selesai update script" .. "\n" .. "3. Jika sudah selesai, silahkan execute ulang script nya."
+})
+
+-- Folder target
+local targetFolder = "RullzsyHUB_VIP"
+
+-- Label status
+local Label = UpdateTab:CreateLabel("📁 STATUS: ...")
+
+-- Toggle Update Script
+UpdateTab:CreateToggle({
+	Name = "RUN UPDATE SCRIPT",
+	CurrentValue = false,
+	Callback = function(state)
+		if state then
+			task.spawn(function()
+				Label:Set("📁 STATUS: Menghapus file cache...")
+				Rayfield:Notify({
+					Title = "Update Script",
+					Content = "Proses menghapus cache...",
+					Image = "file",
+					Duration = 8
+				})
+
+				-- Hapus semua file + folder
+				if isfolder(targetFolder) then
+					local files = listfiles(targetFolder)
+					for i, f in ipairs(files) do
+						pcall(function() delfile(f) end)
+						Label:Set("📁 STATUS: Proses Update ("..i.."/"..#files..")")
+						task.wait(0.2)
+					end
+
+					-- Hapus folder utama setelah semua file terhapus
+					task.wait(0.5)
+					pcall(function() delfolder(targetFolder) end)
+
+					Label:Set("📁 STATUS: Proses Update Selesai!...")
+					Rayfield:Notify({
+						Title = "Update Script",
+						Content = "Proses hapus cache selesai...",
+						Image = "check",
+						Duration = 8
+					})
+				else
+					Label:Set("📁 STATUS: Kamu sudah menggunakan versi terbaru!...")
+					Rayfield:Notify({
+						Title = "Update Script",
+						Content = "Kamu sudah menggunakan versi terbaru, jadi ga usah di update lagi.",
+						Image = "alert",
+						Duration = 8
+					})
+				end
+
+				task.wait(2)
+				Rayfield:Notify({
+					Title = "Proses Selesai",
+					Content = "Update script selesai! Silahkan execute ulang script nya...",
+					Image = "check-check",
+					Duration = 8
+				})
+				task.wait(3)
+				Rayfield:Destroy()
+			end)
+		end
+	end
+})
+--| =========================================================== |--
+--| UPDATE SCRIPT - END                                         |--
 --| =========================================================== |--
