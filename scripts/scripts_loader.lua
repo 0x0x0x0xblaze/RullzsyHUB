@@ -55,7 +55,7 @@ local ScriptTab = Window:CreateTab("List All Scripts", "layers")
 --| =========================================================== |--
 --| USER INTERFACE                                              |--
 --| =========================================================== |--
-local Section = ScriptTab:CreateSection("🔴 Total Map: 12")
+local Section = ScriptTab:CreateSection("🔴 Total Map: 13")
 
 local Divider = ScriptTab:CreateDivider()
 
