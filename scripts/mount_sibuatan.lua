@@ -400,7 +400,7 @@ BypassTab:CreateToggle({
 --| =========================================================== |--
 -- Folder Path Auto Walk
 local mainFolder = "X_RULLZSYHUB_X"
-local jsonFolder = mainFolder .. "/json_mount_sibuatan_patch_001"
+local jsonFolder = mainFolder .. "/json_mount_sibuatan_patch_002"
 if not isfolder(mainFolder) then
     makefolder(mainFolder)
 end
@@ -1409,6 +1409,75 @@ local LoopingToggle = AutoWalkTab:CreateToggle({
    end,
 })
 
+-- God Mode Variable
+local godModeEnabled = false
+local player = game.Players.LocalPlayer
+
+-- Function God Mode
+local function enableGodMode()
+    godModeEnabled = true
+    task.spawn(function()
+        while godModeEnabled do
+            local character = player.Character or player.CharacterAdded:Wait()
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+
+            if humanoid then
+                humanoid.Health = humanoid.MaxHealth
+                humanoid.HealthChanged:Connect(function()
+                    if godModeEnabled and humanoid.Health < humanoid.MaxHealth then
+                        humanoid.Health = humanoid.MaxHealth
+                    end
+                end)
+
+                humanoid.Died:Connect(function()
+                    if godModeEnabled then
+                        task.wait(0.1)
+                        player:LoadCharacter()
+                        task.wait(1)
+                        enableGodMode()
+                    end
+                end)
+                for _, conn in pairs(getconnections(humanoid.StateChanged)) do
+                    conn:Disable()
+                end
+                humanoid.BreakJointsOnDeath = false
+            end
+
+            task.wait(0.2)
+        end
+    end)
+end
+
+-- Function Disable God Mode
+local function disableGodMode()
+    godModeEnabled = false
+end
+
+-- Toggle: Enable God Mode
+local LoopingToggle = AutoWalkTab:CreateToggle({
+   Name = "[◉] Enable God Mode (Wajib)",
+   CurrentValue = false,
+   Callback = function(Value)
+        if Value then
+            enableGodMode()
+			Rayfield:Notify({
+				Image = "user-cog",
+            	Title = "God Mode",
+            	Content = "Berhasil diaktifkan.",
+            	Duration = 3
+        	})
+        else
+            disableGodMode()
+			Rayfield:Notify({
+				Image = "user-cog",
+            	Title = "God Mode",
+            	Content = "Berhasil dimatikan.",
+            	Duration = 3
+        	})
+        end
+    end,
+})
+
 -- Slider: Speed Control
 local SpeedSlider = AutoWalkTab:CreateSlider({
     Name = "[◉] Speed Auto Walk",
@@ -1472,91 +1541,13 @@ local CP2Toggle = AutoWalkTab:CreateToggle({
     end,
 })
 
--- Toggle: Checkpoint 3
-local CP3Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 3)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            playSingleCheckpointFile("checkpoint_3.json", 4)
-        else
-            stopPlayback(true)
-        end
-    end,
-})
-
 -- Toggle: Checkpoint 4
 local CP4Toggle = AutoWalkTab:CreateToggle({
     Name = "[◉] Auto Walk (Checkpoint 4)",
     CurrentValue = false,
     Callback = function(Value)
         if Value then
-            playSingleCheckpointFile("checkpoint_4.json", 5)
-        else
-            stopPlayback(true)
-        end
-    end,
-})
-
--- Toggle: Checkpoint 5
-local CP5Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 5)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            playSingleCheckpointFile("checkpoint_5.json", 6)
-        else
-            stopPlayback(true)
-        end
-    end,
-})
-
--- Toggle: Checkpoint 6
-local CP6Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 6)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            playSingleCheckpointFile("checkpoint_6.json", 7)
-        else
-            stopPlayback(true)
-        end
-    end,
-})
-
--- Toggle: Checkpoint 7
-local CP7Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 7)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            playSingleCheckpointFile("checkpoint_7.json", 8)
-        else
-            stopPlayback(true)
-        end
-    end,
-})
-
--- Toggle: Checkpoint 8
-local CP8Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 8)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            playSingleCheckpointFile("checkpoint_8.json", 9)
-        else
-            stopPlayback(true)
-        end
-    end,
-})
-
--- Toggle: Checkpoint 9
-local CP9Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 9)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            playSingleCheckpointFile("checkpoint_9.json", 10)
+            playSingleCheckpointFile("checkpoint_4.json", 4)
         else
             stopPlayback(true)
         end
@@ -1569,7 +1560,7 @@ local CP10Toggle = AutoWalkTab:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         if Value then
-            playSingleCheckpointFile("checkpoint_10.json", 11)
+            playSingleCheckpointFile("checkpoint_10.json", 5)
         else
             stopPlayback(true)
         end
@@ -1582,59 +1573,163 @@ local CP11Toggle = AutoWalkTab:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         if Value then
-            playSingleCheckpointFile("checkpoint_11.json", 12)
+            playSingleCheckpointFile("checkpoint_11.json", 6)
         else
             stopPlayback(true)
         end
     end,
 })
 
--- Toggle: Checkpoint 12
-local CP12Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 12)",
+-- Toggle: Checkpoint 18
+local CP18Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 18)",
     CurrentValue = false,
     Callback = function(Value)
         if Value then
-            playSingleCheckpointFile("checkpoint_12.json", 13)
+            playSingleCheckpointFile("checkpoint_18.json", 7)
         else
             stopPlayback(true)
         end
     end,
 })
 
--- Toggle: Checkpoint 13
-local CP13Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 13)",
+-- Toggle: Checkpoint 20
+local CP20Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 20)",
     CurrentValue = false,
     Callback = function(Value)
         if Value then
-            playSingleCheckpointFile("checkpoint_13.json", 14)
+            playSingleCheckpointFile("checkpoint_20.json", 8)
         else
             stopPlayback(true)
         end
     end,
 })
 
--- Toggle: Checkpoint 14
-local CP14Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 14)",
+-- Toggle: Checkpoint 21
+local CP21Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 21)",
     CurrentValue = false,
     Callback = function(Value)
         if Value then
-            playSingleCheckpointFile("checkpoint_14.json", 15)
+            playSingleCheckpointFile("checkpoint_21.json", 9)
         else
             stopPlayback(true)
         end
     end,
 })
 
--- Toggle: Checkpoint 15
-local CP15Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 15)",
+-- Toggle: Checkpoint 25
+local CP25Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 25)",
     CurrentValue = false,
     Callback = function(Value)
         if Value then
-            playSingleCheckpointFile("checkpoint_15.json", 16)
+            playSingleCheckpointFile("checkpoint_25.json", 10)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint Water Checkpoint
+local CPWCToggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Water Checkpoint)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("water_checkpoint.json", 11)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 28
+local CP28Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 28)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_28.json", 12)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 29
+local CP29Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 29)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_29.json", 13)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 34
+local CP34Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 34)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_34.json", 14)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 35
+local CP35Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 35)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_35.json", 15)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 36
+local CP36Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 36)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_36.json", 16)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 37
+local CP37Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 37)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_37.json", 17)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 38
+local CP38Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 38)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_38.json", 18)
         else
             stopPlayback(true)
         end
@@ -1649,86 +1744,6 @@ local CP15Toggle = AutoWalkTab:CreateToggle({
 --| =========================================================== |--
 --| PLAYER MENU                                                 |--
 --| =========================================================== |--
--- Section Nametag Menu
-local Section = PlayerTab:CreateSection("Nametag Menu")
-
--- Toggle Hidenametag
-local HideNametagToggle = PlayerTab:CreateToggle({
-    Name = "[◉] Hide Nametags",
-    CurrentValue = false,
-    Callback = function(Value)
-        local function hideNametagsForCharacter(character)
-            if not character then return end
-            local head = character:FindFirstChild("Head")
-            if not head then return end
-            for _, obj in pairs(head:GetChildren()) do
-                if obj:IsA("BillboardGui") then
-                    obj.Enabled = false
-                end
-            end
-        end
-
-        local function showNametagsForCharacter(character)
-            if not character then return end
-            local head = character:FindFirstChild("Head")
-            if not head then return end
-            for _, obj in pairs(head:GetChildren()) do
-                if obj:IsA("BillboardGui") then
-                    obj.Enabled = true
-                end
-            end
-        end
-
-        local function setNametagsVisible(state)
-            for _, player in pairs(Players:GetPlayers()) do
-                if player.Character then
-                    if state then
-                        showNametagsForCharacter(player.Character)
-                    else
-                        hideNametagsForCharacter(player.Character)
-                    end
-                end
-            end
-        end
-
-        if Value then
-            setNametagsVisible(false)
-            nametagConnections = {}
-            local function connectPlayer(player)
-                local charAddedConn
-                charAddedConn = player.CharacterAdded:Connect(function(char)
-                    task.wait(1)
-                    hideNametagsForCharacter(char)
-                end)
-                table.insert(nametagConnections, charAddedConn)
-            end
-            for _, player in pairs(Players:GetPlayers()) do
-                connectPlayer(player)
-            end
-            table.insert(nametagConnections, Players.PlayerAdded:Connect(connectPlayer))
-			Rayfield:Notify({
-				Image = "user-cog",
-                Title = "Hide Nametag",
-                Content = "Berhasil diaktifkan.",
-                Duration = 3
-            })
-        else
-            setNametagsVisible(true)
-            if nametagConnections then
-                for _, conn in pairs(nametagConnections) do
-                    if conn.Connected then conn:Disconnect() end
-                end
-            end
-            nametagConnections = nil
-			Rayfield:Notify({
-				Image = "user-cog",
-                Title = "Hide Nametag",
-                Content = "Berhasil dimatikan.",
-                Duration = 3
-            })
-        end
-    end,
-})
 
 -- Variable Walk Speed
 local WalkSpeedEnabled = false
@@ -1803,68 +1818,6 @@ PlayerTab:CreateSlider({
         if Char and Char:FindFirstChild("Humanoid") and WalkSpeedEnabled then
             Char.Humanoid.WalkSpeed = WalkSpeedValue
         end
-    end,
-})
-
--- Variable Time Changer
-local Lighting = game:GetService("Lighting")
-local TimeLockEnabled = false
-local CurrentTimeValue = 12
-
--- Function apply time
-local function ApplyTimeChange(Value)
-    if typeof(Value) == "number" then
-        Lighting.ClockTime = Value
-        CurrentTimeValue = Value
-    end
-end
-
--- Keep the time locked if user wants constant lighting
-task.spawn(function()
-    while task.wait(1) do
-        if TimeLockEnabled then
-            Lighting.ClockTime = CurrentTimeValue
-        end
-    end
-end)
-
--- Section
-local Section = PlayerTab:CreateSection("Time Menu")
-
--- Toggle Time Changer
-PlayerTab:CreateToggle({
-    Name = "[◉] Lock Time",
-    CurrentValue = false,
-    Callback = function(Value)
-        TimeLockEnabled = Value
-
-        if Value then
-            Rayfield:Notify({
-                Image = "user-cog",
-                Title = "Lock Time",
-                Content = "Berhasil diaktifkan.",
-                Duration = 3
-            })
-        else
-            Rayfield:Notify({
-                Image = "user-cog",
-                Title = "Lock Time",
-                Content = "Berhasil dimatikan.",
-                Duration = 3
-            })
-        end
-    end,
-})
-
--- Slider Time Changer
-PlayerTab:CreateSlider({
-    Name = "[◉] Set Time of Day",
-    Range = {0, 24},
-    Increment = 1,
-    Suffix = "Hours",
-    CurrentValue = 12,
-    Callback = function(Value)
-        ApplyTimeChange(Value)
     end,
 })
 --| =========================================================== |--
