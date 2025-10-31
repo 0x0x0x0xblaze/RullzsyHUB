@@ -55,7 +55,7 @@ local ScriptTab = Window:CreateTab("List All Scripts", "layers")
 --| =========================================================== |--
 --| USER INTERFACE                                              |--
 --| =========================================================== |--
-local Section = ScriptTab:CreateSection("🔴 Total Map: 11")
+local Section = ScriptTab:CreateSection("🔴 Total Map: 12")
 
 local Divider = ScriptTab:CreateDivider()
 
@@ -144,6 +144,15 @@ ScriptTab:CreateButton({
 	Callback = function()
 		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Ragon...", Duration=4})
 	    loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_ragon.lua"))()
+	end
+})
+
+
+ScriptTab:CreateButton({
+	Name = "[◉] Mount Bilek",
+	Callback = function()
+		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Bilek...", Duration=4})
+	    loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_bilek.lua"))()
 	end
 })
 
