@@ -135,7 +135,7 @@ ScriptTab:CreateButton({
 	Name = "[◉] Mount Freestyle",
 	Callback = function()
 		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Freestyle...", Duration=4})
-	    loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/sadewa_city.lua"))()
+	    loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_freestyle.lua"))()
 	end
 })
 
