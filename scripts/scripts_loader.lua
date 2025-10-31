@@ -123,6 +123,14 @@ ScriptTab:CreateButton({
 	end
 })
 
+ScriptTab:CreateButton({
+	Name = "[◉] Mount Arunika",
+	Callback = function()
+		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Sadewa City...", Duration=4})
+	    loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/sadewa_city.lua"))()
+	end
+})
+
 local Divider = ScriptTab:CreateDivider()
 --| =========================================================== |--
 --| USER INTERFACE - END                                        |--
