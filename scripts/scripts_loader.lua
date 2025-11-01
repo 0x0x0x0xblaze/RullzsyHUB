@@ -181,6 +181,14 @@ ScriptTab:CreateButton({
 	end
 })
 
+ScriptTab:CreateButton({
+	Name = "[◉] Mount Yagesya",
+	Callback = function()
+		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Yagesya...", Duration=4})
+	    loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_yagesya.lua"))()
+	end
+})
+
 local Divider = ScriptTab:CreateDivider()
 --| =========================================================== |--
 --| USER INTERFACE - END                                        |--

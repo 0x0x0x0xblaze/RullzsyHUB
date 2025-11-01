@@ -38,7 +38,7 @@ local RedDarkTheme = {
 
 -- Create Window
 local Window = Rayfield:CreateWindow({
-    Name = "RullzsyHUB | Mount Freestyle",
+    Name = "RullzsyHUB | Mount Yagesya",
     Icon = "braces",
     LoadingTitle = "Created By RullzsyHUB",
     LoadingSubtitle = "Follow Tiktok: @rullzsy99",
@@ -61,6 +61,8 @@ local HttpService = game:GetService("HttpService")
 local StarterGui = game:GetService("StarterGui")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local VirtualUser = game:GetService("VirtualUser")
 
 -- Import
 local player = Players.LocalPlayer
@@ -305,9 +307,87 @@ AccountTab:CreateDivider()
 --| =========================================================== |--
 --| BYPASS                                                      |--
 --| =========================================================== |--
-local Paragraph = BypassTab:CreateParagraph({
-   Title = "Keterangan !!!",
-   Content = "⚠️ Bypass afk belum tersedia untuk mount yntkts, solusi bypass afk di server yntkts pake Auto Clicker."
+-- Variable Anti Idle
+getgenv().AntiIdleActive = false
+local AntiIdleConnection
+local MovementLoop
+
+-- Function start idle
+local function StartAntiIdle()
+    if AntiIdleConnection then
+        AntiIdleConnection:Disconnect()
+        AntiIdleConnection = nil
+    end
+    if MovementLoop then
+        MovementLoop:Disconnect()
+        MovementLoop = nil
+    end
+    AntiIdleConnection = LocalPlayer.Idled:Connect(function()
+        if getgenv().AntiIdleActive then
+            VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+            task.wait(1)
+            VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+        end
+    end)
+    MovementLoop = RunService.Heartbeat:Connect(function()
+        if getgenv().AntiIdleActive and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local root = LocalPlayer.Character.HumanoidRootPart
+            if tick() % 60 < 0.05 then
+                root.CFrame = root.CFrame * CFrame.new(0, 0, 0.1)
+                task.wait(0.1)
+                root.CFrame = root.CFrame * CFrame.new(0, 0, -0.1)
+            end
+        end
+    end)
+end
+
+-- Respawn Validation
+local function SetupCharacterListener()
+    LocalPlayer.CharacterAdded:Connect(function(newChar)
+        newChar:WaitForChild("HumanoidRootPart", 10)
+        if getgenv().AntiIdleActive then
+            StartAntiIdle()
+        end
+    end)
+end
+
+StartAntiIdle()
+SetupCharacterListener()
+
+-- Section
+local Section = BypassTab:CreateSection("List All Bypass")
+
+BypassTab:CreateToggle({
+    Name = "[◉] Bypass AFK",
+    CurrentValue = false,
+    Flag = "AntiIdleToggle",
+    Callback = function(Value)
+        getgenv().AntiIdleActive = Value
+        if Value then
+            StartAntiIdle()
+            Rayfield:Notify({
+                Image = "shield",
+                Title = "Bypass AFK",
+                Content = "Bypass AFK diaktifkan.",
+                Duration = 5
+            })
+        else
+            if AntiIdleConnection then
+                AntiIdleConnection:Disconnect()
+                AntiIdleConnection = nil
+            end
+            if MovementLoop then
+                MovementLoop:Disconnect()
+                MovementLoop = nil
+            end
+            Rayfield:Notify({
+                Image = "shield",
+                Title = "Bypass AFK",
+                Content = "Bypass AFK dimatikan.",
+                Duration = 5
+            })
+        end
+    end,
 })
 --| =========================================================== |--
 --| BYPASS - END                                                |--
@@ -320,7 +400,7 @@ local Paragraph = BypassTab:CreateParagraph({
 --| =========================================================== |--
 -- Folder Path Auto Walk
 local mainFolder = "X_RULLZSYHUB_X"
-local jsonFolder = mainFolder .. "/json_mount_freestyle_patch_002"
+local jsonFolder = mainFolder .. "/json_mount_yagesya_patch_001"
 if not isfolder(mainFolder) then
     makefolder(mainFolder)
 end
@@ -329,25 +409,14 @@ if not isfolder(jsonFolder) then
 end
 
 -- JSON Auto Walk Files
-local baseURL = "https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/json/json_mount_freestyle/"
+local baseURL = "https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/json/json_mount_yagesya/"
 local jsonFiles = {
+    "spawnpoint.json",
     "checkpoint_1.json",
     "checkpoint_2.json",
     "checkpoint_3.json",
     "checkpoint_4.json",
     "checkpoint_5.json",
-    "checkpoint_6.json",
-	"checkpoint_7.json",
-	"checkpoint_8.json",
-	"checkpoint_9.json",
-	"checkpoint_10.json",
-	"checkpoint_11.json",
-	"checkpoint_12.json",
-	"checkpoint_13.json",
-	"checkpoint_14.json",
-    "checkpoint_15.json",
-    "checkpoint_16.json",
-    "checkpoint_17.json",
 }
 
 -- Variables Auto Walk
@@ -374,6 +443,11 @@ local accumulatedTime = 0
 local lastFootstepTime = 0
 local footstepInterval = 0.35
 local leftFootstep = true
+
+-- Flip Variables
+local isFlipped = false
+local FLIP_SMOOTHNESS = 0.05
+local currentFlipRotation = CFrame.new()
 
 -- Function Auto Walk
 local function playFootstepSound()
@@ -549,6 +623,8 @@ local function stopPlayback(forceStopLoop)
     accumulatedTime = 0
     lastPlaybackTime = 0
     heightOffset = 0
+    isFlipped = false
+    currentFlipRotation = CFrame.new()
     lastGroundedState = false
     landingCooldown = 0
     jumpCooldown = 0
@@ -595,7 +671,6 @@ local function startPlayback(data, onComplete)
 		stopPlayback()
 	end
 
-	-- Set starting position and rotation
 	if character and character:FindFirstChild("HumanoidRootPart") and data[1] then
 		local firstFrame = data[1]
 		local startPos = tableToVec(firstFrame.position)
@@ -606,13 +681,11 @@ local function startPlayback(data, onComplete)
 		hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
 		hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
 
-		-- Calculate height offset
 		local currentHipHeight = humanoid.HipHeight
 		local recordedHipHeight = data[1].hipHeight or 2
 		heightOffset = currentHipHeight - recordedHipHeight
 	end
 
-	-- Initialize playback state
 	isPlaying = true
 	isPaused = false
 	pausedTime = 0
@@ -626,17 +699,14 @@ local function startPlayback(data, onComplete)
 	jumpCooldown = 0
 	lastYVelocity = 0
 
-	-- Disconnect existing connection
 	if playbackConnection then
 		playbackConnection:Disconnect()
 		playbackConnection = nil
 	end
 
-	-- Main playback loop
 	playbackConnection = RunService.Heartbeat:Connect(function(deltaTime)
 		if not isPlaying then return end
 
-		-- Handle pause state
 		if isPaused then
 			if pauseStartTime == 0 then
 				pauseStartTime = tick()
@@ -651,71 +721,59 @@ local function startPlayback(data, onComplete)
 			end
 		end
 
-		-- Verify character exists
 		if not character or not character:FindFirstChild("HumanoidRootPart") then return end
 		if not humanoid or humanoid.Parent ~= character then
 			humanoid = character:FindFirstChild("Humanoid")
 		end
 
-		-- Update cooldowns
 		if landingCooldown > 0 then landingCooldown -= deltaTime end
 		if jumpCooldown > 0 then jumpCooldown -= deltaTime end
 
-		-- Calculate accumulated time (FPS independent)
 		local currentTime = tick()
 		local actualDelta = math.min(currentTime - lastPlaybackTime, 0.1)
 		lastPlaybackTime = currentTime
 		accumulatedTime += (actualDelta * playbackSpeed)
 		local totalDuration = data[#data].time
 
-		-- Check if playback is complete
 		if accumulatedTime > totalDuration then
 			stopPlayback()
 			if onComplete then onComplete() end
 			return
 		end
 
-		-- Find surrounding frames for interpolation
 		local i0, i1, alpha = findSurroundingFrames(data, accumulatedTime)
 		local f0, f1 = data[i0], data[i1]
 		if not f0 or not f1 then return end
 
-		-- Extract frame data
 		local pos0, pos1 = tableToVec(f0.position), tableToVec(f1.position)
 		local vel0, vel1 = tableToVec(f0.velocity or {x = 0, y = 0, z = 0}), tableToVec(f1.velocity or {x = 0, y = 0, z = 0})
 		local move0, move1 = tableToVec(f0.moveDirection or {x = 0, y = 0, z = 0}), tableToVec(f1.moveDirection or {x = 0, y = 0, z = 0})
 		local yaw0, yaw1 = f0.rotation or 0, f1.rotation or 0
 
-		-- Interpolate values
 		local interpPos = lerpVector(pos0, pos1, alpha)
 		local interpVel = lerpVector(vel0, vel1, alpha)
 		local interpMove = lerpVector(move0, move1, alpha)
 		local interpYaw = lerpAngle(yaw0, yaw1, alpha)
 		local hrp = character.HumanoidRootPart
 
-		-- Ground detection
 		local shouldBeGrounded = (f0.state == "Running" or f0.state == "RunningNoPhysics" or f0.state == "Landed")
 		local nearGround, _ = isNearGround(hrp.Position, 4)
 
-		-- Apply position and rotation (WITHOUT FLIP)
 		local correctedY = interpPos.Y + heightOffset
 		local targetCFrame = CFrame.new(interpPos.X, correctedY, interpPos.Z) * CFrame.Angles(0, interpYaw, 0)
+		local targetFlipRotation = isFlipped and CFrame.Angles(0, math.pi, 0) or CFrame.new()
+		currentFlipRotation = currentFlipRotation:Lerp(targetFlipRotation, FLIP_SMOOTHNESS)
 
-		-- Smooth CFrame interpolation
 		local lerpFactor = math.clamp(1 - math.exp(-12 * actualDelta), 0, 1)
-		hrp.CFrame = hrp.CFrame:Lerp(targetCFrame, lerpFactor)
-		
-		-- Simulate natural movement (footsteps, etc)
+		hrp.CFrame = hrp.CFrame:Lerp(targetCFrame * currentFlipRotation, lerpFactor)
 		simulateNaturalMovement(interpMove, interpVel)
 
-		-- Apply velocity with smoothing
 		pcall(function()
 			local currentVel = hrp.AssemblyLinearVelocity
 			local smoothedX = lerp(currentVel.X, interpVel.X, 0.75)
 			local smoothedY = lerp(currentVel.Y, interpVel.Y, 0.75)
 			local smoothedZ = lerp(currentVel.Z, interpVel.Z, 0.75)
 
-			-- Landing detection
 			if lastYVelocity < -5 and smoothedY > -2 and nearGround then
 				landingCooldown = 0.25
 				smoothedY = 0
@@ -728,7 +786,6 @@ local function startPlayback(data, onComplete)
 			lastYVelocity = smoothedY
 		end)
 
-		-- Apply move direction
 		if humanoid then
 			local smoothedMove = humanoid.MoveDirection:Lerp(interpMove, 0.6)
 			humanoid:Move(smoothedMove, false)
@@ -983,7 +1040,7 @@ local function playSingleCheckpointFile(fileName, checkpointIndex)
     end
 end
 
--- ========== PAUSE UI (ONLY) ========== --
+-- ========== PAUSE/ROTATE UI ========== --
 local BTN_COLOR = Color3.fromRGB(38, 38, 38)
 local BTN_HOVER = Color3.fromRGB(55, 55, 55)
 local TEXT_COLOR = Color3.fromRGB(230, 230, 230)
@@ -997,7 +1054,6 @@ local function createPauseRotateUI()
     ui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ui.Parent = CoreGui
     
-    -- Background Frame (lebih kecil karena hanya 1 tombol)
     local bgFrame = Instance.new("Frame")
     bgFrame.Name = "PR_Background"
     bgFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -1005,14 +1061,13 @@ local function createPauseRotateUI()
     bgFrame.BorderSizePixel = 0
     bgFrame.AnchorPoint = Vector2.new(0.5, 0.5)
     bgFrame.Position = UDim2.new(0.5, 0, 0.85, 0)
-    bgFrame.Size = UDim2.new(0, 80, 0, 70) -- Lebih kecil karena 1 button
+    bgFrame.Size = UDim2.new(0, 130, 0, 70)
     bgFrame.Visible = false
     bgFrame.Parent = ui
     
     local bgCorner = Instance.new("UICorner", bgFrame)
     bgCorner.CornerRadius = UDim.new(0, 20)
     
-    -- Drag Indicator (3 dots)
     local dragIndicator = Instance.new("Frame")
     dragIndicator.Name = "DragIndicator"
     dragIndicator.BackgroundTransparency = 1
@@ -1027,7 +1082,6 @@ local function createPauseRotateUI()
     dotLayout.VerticalAlignment = Enum.VerticalAlignment.Center
     dotLayout.Padding = UDim.new(0, 6)
     
-    -- Create 3 dots
     for i = 1, 3 do
         local dot = Instance.new("Frame")
         dot.Name = "Dot" .. i
@@ -1041,7 +1095,6 @@ local function createPauseRotateUI()
         dotCorner.CornerRadius = UDim.new(1, 0)
     end
     
-    -- Main Frame untuk button
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "PR_Main"
     mainFrame.BackgroundTransparency = 1
@@ -1051,7 +1104,6 @@ local function createPauseRotateUI()
     mainFrame.Size = UDim2.new(1, -10, 0, 50)
     mainFrame.Parent = bgFrame
     
-    -- ========== DRAG FUNCTIONALITY ========== --
     local dragging = false
     local dragInput, dragStart, startPos
     local UserInputService = game:GetService("UserInputService")
@@ -1073,7 +1125,6 @@ local function createPauseRotateUI()
             dragStart = input.Position
             startPos = bgFrame.Position
             
-            -- Animasi dots saat drag
             for i, dot in ipairs(dragIndicator:GetChildren()) do
                 if dot:IsA("Frame") then
                     TweenService:Create(dot, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
@@ -1086,7 +1137,6 @@ local function createPauseRotateUI()
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
-                    -- Reset dots
                     for i, dot in ipairs(dragIndicator:GetChildren()) do
                         if dot:IsA("Frame") then
                             TweenService:Create(dot, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
@@ -1116,7 +1166,6 @@ local function createPauseRotateUI()
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             if dragging then
                 dragging = false
-                -- Reset dots
                 for i, dot in ipairs(dragIndicator:GetChildren()) do
                     if dot:IsA("Frame") then
                         TweenService:Create(dot, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
@@ -1129,72 +1178,69 @@ local function createPauseRotateUI()
         end
     end)
     
-    -- Layout untuk center button
     local layout = Instance.new("UIListLayout", mainFrame)
     layout.FillDirection = Enum.FillDirection.Horizontal
     layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     layout.VerticalAlignment = Enum.VerticalAlignment.Center
-    layout.Padding = UDim.new(0, 0)
+    layout.Padding = UDim.new(0, 10)
     
-    -- ========== CREATE PAUSE/RESUME BUTTON ========== --
-    local pauseResumeBtn = Instance.new("TextButton")
-    pauseResumeBtn.Size = UDim2.new(0, 50, 0, 50)
-    pauseResumeBtn.BackgroundColor3 = BTN_COLOR
-    pauseResumeBtn.BackgroundTransparency = 0.1
-    pauseResumeBtn.TextColor3 = TEXT_COLOR
-    pauseResumeBtn.Font = Enum.Font.GothamBold
-    pauseResumeBtn.TextSize = 24
-    pauseResumeBtn.Text = "⏸️"
-    pauseResumeBtn.AutoButtonColor = false
-    pauseResumeBtn.BorderSizePixel = 0
-    pauseResumeBtn.Parent = mainFrame
+    local function createButton(emoji, color)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0, 50, 0, 50)
+        btn.BackgroundColor3 = BTN_COLOR
+        btn.BackgroundTransparency = 0.1
+        btn.TextColor3 = TEXT_COLOR
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 24
+        btn.Text = emoji
+        btn.AutoButtonColor = false
+        btn.BorderSizePixel = 0
+        btn.Parent = mainFrame
+        
+        local c = Instance.new("UICorner", btn)
+        c.CornerRadius = UDim.new(1, 0)
+        btn.MouseEnter:Connect(function()
+            TweenService:Create(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad), {
+                BackgroundColor3 = BTN_HOVER,
+                Size = UDim2.new(0, 54, 0, 54)
+            }):Play()
+        end)
+        
+        btn.MouseLeave:Connect(function()
+            TweenService:Create(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad), {
+                BackgroundColor3 = color or BTN_COLOR,
+                Size = UDim2.new(0, 50, 0, 50)
+            }):Play()
+        end)
+        
+        return btn
+    end
     
-    local btnCorner = Instance.new("UICorner", pauseResumeBtn)
-    btnCorner.CornerRadius = UDim.new(1, 0)
+    local pauseResumeBtn = createButton("⏸️", BTN_COLOR)
+    local rotateBtn = createButton("🔄", BTN_COLOR)
     
-    -- Hover effect
-    pauseResumeBtn.MouseEnter:Connect(function()
-        TweenService:Create(pauseResumeBtn, TweenInfo.new(0.12, Enum.EasingStyle.Quad), {
-            BackgroundColor3 = BTN_HOVER,
-            Size = UDim2.new(0, 54, 0, 54)
-        }):Play()
-    end)
-    
-    pauseResumeBtn.MouseLeave:Connect(function()
-        local targetColor = currentlyPaused and SUCCESS_COLOR or BTN_COLOR
-        TweenService:Create(pauseResumeBtn, TweenInfo.new(0.12, Enum.EasingStyle.Quad), {
-            BackgroundColor3 = targetColor,
-            Size = UDim2.new(0, 50, 0, 50)
-        }):Play()
-    end)
-    
-    -- State variable
     local currentlyPaused = false
-    
-    -- Tween settings untuk show/hide
     local tweenTime = 0.25
     local showScale = 1
     local hideScale = 0
     
-    -- Show/Hide functions
     local function showUI()
         bgFrame.Visible = true
-        bgFrame.Size = UDim2.new(0, 80 * hideScale, 0, 70 * hideScale)
+        bgFrame.Size = UDim2.new(0, 130 * hideScale, 0, 70 * hideScale)
         TweenService:Create(bgFrame, TweenInfo.new(tweenTime, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-            Size = UDim2.new(0, 80 * showScale, 0, 70 * showScale)
+            Size = UDim2.new(0, 130 * showScale, 0, 70 * showScale)
         }):Play()
     end
     
     local function hideUI()
         TweenService:Create(bgFrame, TweenInfo.new(tweenTime, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-            Size = UDim2.new(0, 80 * hideScale, 0, 70 * hideScale)
+            Size = UDim2.new(0, 130 * hideScale, 0, 70 * hideScale)
         }):Play()
         task.delay(tweenTime, function()
             bgFrame.Visible = false
         end)
     end
     
-    -- ========== PAUSE/RESUME BUTTON CLICK ========== --
     pauseResumeBtn.MouseButton1Click:Connect(function()
         if not isPlaying then
             Rayfield:Notify({
@@ -1207,7 +1253,6 @@ local function createPauseRotateUI()
         end
         
         if not currentlyPaused then
-            -- PAUSE
             isPaused = true
             currentlyPaused = true
             pauseResumeBtn.Text = "▶️"
@@ -1219,7 +1264,6 @@ local function createPauseRotateUI()
                 Image = "pause"
             })
         else
-            -- RESUME
             isPaused = false
             currentlyPaused = false
             pauseResumeBtn.Text = "⏸️"
@@ -1233,14 +1277,48 @@ local function createPauseRotateUI()
         end
     end)
     
-    -- Reset UI state function
+    rotateBtn.MouseButton1Click:Connect(function()
+        if not isPlaying then
+            Rayfield:Notify({
+                Title = "Rotate",
+                Content = "Auto walk harus berjalan terlebih dahulu!",
+                Duration = 3,
+                Image = "alert-triangle"
+            })
+            return
+        end
+        
+        isFlipped = not isFlipped
+        if isFlipped then
+            rotateBtn.Text = "🔃"
+            rotateBtn.BackgroundColor3 = SUCCESS_COLOR
+            Rayfield:Notify({
+                Title = "Rotate",
+                Content = "Jalan mundur diaktifkan",
+                Duration = 2,
+                Image = "rotate-cw"
+            })
+        else
+            rotateBtn.Text = "🔄"
+            rotateBtn.BackgroundColor3 = BTN_COLOR
+            Rayfield:Notify({
+                Title = "Rotate",
+                Content = "Jalan mundur dimatikan",
+                Duration = 2,
+                Image = "rotate-ccw"
+            })
+        end
+    end)
+    
     local function resetUIState()
         currentlyPaused = false
         pauseResumeBtn.Text = "⏸️"
         pauseResumeBtn.BackgroundColor3 = BTN_COLOR
+        isFlipped = false
+        rotateBtn.Text = "🔄"
+        rotateBtn.BackgroundColor3 = BTN_COLOR
     end
 
-    -- Return UI controls
     return {
         mainFrame = bgFrame,
         showUI = showUI,
@@ -1251,12 +1329,21 @@ end
 
 local pauseRotateUI = createPauseRotateUI()
 
--- Override stopPlayback untuk reset UI
 local originalStopPlayback = stopPlayback
 stopPlayback = function(forceStopLoop)
     originalStopPlayback(forceStopLoop)
     pauseRotateUI.resetUIState()
 end
+
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    humanoid = character:WaitForChild("Humanoid")
+    humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    
+    if isPlaying then
+        stopPlayback(true)
+    end
+end)
 
 -- ========== AUTO WALK UI ========== --
 -- Section: Settings
@@ -1264,7 +1351,7 @@ local Section = AutoWalkTab:CreateSection("Auto Walk (Settings)")
 
 -- Toggle: Pause/Rotate Menu
 local Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Pause/Resume Menu",
+    Name = "[◉] Pause/Flip Menu",
     CurrentValue = false,
     Callback = function(Value)
         if Value then
@@ -1327,13 +1414,26 @@ local SpeedSlider = AutoWalkTab:CreateSlider({
 -- Section: Manual Controls
 local Section = AutoWalkTab:CreateSection("Auto Walk (Manual)")
 
+-- Toggle: Spawnpoint
+local SCPToggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Spawnpoint)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("spawnpoint.json", 1)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
 -- Toggle: Checkpoint 1
 local CP1Toggle = AutoWalkTab:CreateToggle({
     Name = "[◉] Auto Walk (Checkpoint 1)",
     CurrentValue = false,
     Callback = function(Value)
         if Value then
-            playSingleCheckpointFile("checkpoint_1.json", 1)
+            playSingleCheckpointFile("checkpoint_1.json", 2)
         else
             stopPlayback(true)
         end
@@ -1346,7 +1446,7 @@ local CP2Toggle = AutoWalkTab:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         if Value then
-            playSingleCheckpointFile("checkpoint_2.json", 2)
+            playSingleCheckpointFile("checkpoint_2.json", 3)
         else
             stopPlayback(true)
         end
@@ -1359,7 +1459,7 @@ local CP3Toggle = AutoWalkTab:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         if Value then
-            playSingleCheckpointFile("checkpoint_3.json", 3)
+            playSingleCheckpointFile("checkpoint_3.json", 4)
         else
             stopPlayback(true)
         end
@@ -1372,7 +1472,7 @@ local CP4Toggle = AutoWalkTab:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         if Value then
-            playSingleCheckpointFile("checkpoint_4.json", 4)
+            playSingleCheckpointFile("checkpoint_4.json", 5)
         else
             stopPlayback(true)
         end
@@ -1385,163 +1485,7 @@ local CP5Toggle = AutoWalkTab:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         if Value then
-            playSingleCheckpointFile("checkpoint_5.json", 5)
-        else
-            stopPlayback(true)
-        end
-    end,
-})
-
--- Toggle: Checkpoint 6
-local CP6Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 6)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            playSingleCheckpointFile("checkpoint_6.json", 6)
-        else
-            stopPlayback(true)
-        end
-    end,
-})
-
--- Toggle: Checkpoint 7
-local CP7Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 7)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            playSingleCheckpointFile("checkpoint_7.json", 7)
-        else
-            stopPlayback(true)
-        end
-    end,
-})
-
--- Toggle: Checkpoint 8
-local CP8Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 8)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            playSingleCheckpointFile("checkpoint_8.json", 8)
-        else
-            stopPlayback(true)
-        end
-    end,
-})
-
--- Toggle: Checkpoint 9
-local CP9Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 9)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            playSingleCheckpointFile("checkpoint_9.json", 9)
-        else
-            stopPlayback(true)
-        end
-    end,
-})
-
--- Toggle: Checkpoint 10
-local CP10Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 10)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            playSingleCheckpointFile("checkpoint_10.json", 10)
-        else
-            stopPlayback(true)
-        end
-    end,
-})
-
--- Toggle: Checkpoint 11
-local CP11Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 11)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            playSingleCheckpointFile("checkpoint_11.json", 11)
-        else
-            stopPlayback(true)
-        end
-    end,
-})
-
--- Toggle: Checkpoint 12
-local CP12Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 12)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            playSingleCheckpointFile("checkpoint_12.json", 12)
-        else
-            stopPlayback(true)
-        end
-    end,
-})
-
--- Toggle: Checkpoint 13
-local CP13Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 13)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            playSingleCheckpointFile("checkpoint_13.json", 13)
-        else
-            stopPlayback(true)
-        end
-    end,
-})
-
--- Toggle: Checkpoint 14
-local CP14Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 14)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            playSingleCheckpointFile("checkpoint_14.json", 14)
-        else
-            stopPlayback(true)
-        end
-    end,
-})
-
--- Toggle: Checkpoint 15
-local CP15Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 15)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            playSingleCheckpointFile("checkpoint_15.json", 15)
-        else
-            stopPlayback(true)
-        end
-    end,
-})
-
--- Toggle: Checkpoint 16
-local CP16Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 16)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            playSingleCheckpointFile("checkpoint_16.json", 16)
-        else
-            stopPlayback(true)
-        end
-    end,
-})
-
--- Toggle: Checkpoint 17
-local CP17Toggle = AutoWalkTab:CreateToggle({
-    Name = "[◉] Auto Walk (Checkpoint 17)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            playSingleCheckpointFile("checkpoint_17.json", 17)
+            playSingleCheckpointFile("checkpoint_5.json", 6)
         else
             stopPlayback(true)
         end
