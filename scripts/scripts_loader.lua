@@ -56,7 +56,7 @@ local UpdateTab = Window:CreateTab("Update Script", "file")
 --| =========================================================== |--
 --| USER INTERFACE                                              |--
 --| =========================================================== |--
-local Section = ScriptTab:CreateSection("🔴 Total Map: 14")
+local Section = ScriptTab:CreateSection("🔴 Total Map: 15")
 
 local Divider = ScriptTab:CreateDivider()
 
@@ -170,6 +170,14 @@ ScriptTab:CreateButton({
 	Callback = function()
 		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount (Medium)...", Duration=4})
 	    loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_sakahayang_medium.lua"))()
+	end
+})
+
+ScriptTab:CreateButton({
+	Name = "[◉] Mount Anj",
+	Callback = function()
+		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Anj...", Duration=4})
+	    loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_anj.lua"))()
 	end
 })
 
