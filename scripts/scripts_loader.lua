@@ -169,7 +169,7 @@ ScriptTab:CreateButton({
 	Name = "[◉] Mount Sakahayang (Medium)",
 	Callback = function()
 		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount (Medium)...", Duration=4})
-	    loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_sakahayang.lua"))()
+	    loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_sakahayang_medium.lua"))()
 	end
 })
 
