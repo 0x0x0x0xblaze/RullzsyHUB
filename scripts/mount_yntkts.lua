@@ -360,6 +360,10 @@ local loopStartCheckpoint = 0
 local isLoopingActive = false
 
 -- FPS Independent & Jump/Landing State Variables
+local lastGroundedState = false
+local landingCooldown = 0
+local jumpCooldown = 0
+local lastYVelocity = 0
 local lastPlaybackTime = 0
 local accumulatedTime = 0
 
@@ -549,6 +553,10 @@ local function stopPlayback(forceStopLoop)
     heightOffset = 0
     isFlipped = false
     currentFlipRotation = CFrame.new()
+    lastGroundedState = false
+    landingCooldown = 0
+    jumpCooldown = 0
+    lastYVelocity = 0
     
     if forceStopLoop == true then
         isLoopingActive = false
@@ -597,19 +605,13 @@ local function startPlayback(data, onComplete)
 		local startYaw = firstFrame.rotation or 0
 
 		local hrp = character.HumanoidRootPart
-		
-		-- Hitung height offset terlebih dahulu
+		hrp.CFrame = CFrame.new(startPos) * CFrame.Angles(0, startYaw, 0)
+		hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+		hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+
 		local currentHipHeight = humanoid.HipHeight
 		local recordedHipHeight = data[1].hipHeight or 2
 		heightOffset = currentHipHeight - recordedHipHeight
-		
-		-- Terapkan height offset langsung pada posisi awal
-		local correctedStartY = startPos.Y + heightOffset
-		local correctedStartPos = Vector3.new(startPos.X, correctedStartY, startPos.Z)
-		
-		hrp.CFrame = CFrame.new(correctedStartPos) * CFrame.Angles(0, startYaw, 0)
-		hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-		hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
 	end
 
 	isPlaying = true
@@ -620,6 +622,10 @@ local function startPlayback(data, onComplete)
 	lastPlaybackTime = playbackStartTime
 	accumulatedTime = 0
 	local lastJumping = false
+	lastGroundedState = true
+	landingCooldown = 0
+	jumpCooldown = 0
+	lastYVelocity = 0
 
 	if playbackConnection then
 		playbackConnection:Disconnect()
@@ -648,6 +654,9 @@ local function startPlayback(data, onComplete)
 			humanoid = character:FindFirstChild("Humanoid")
 		end
 
+		if landingCooldown > 0 then landingCooldown -= deltaTime end
+		if jumpCooldown > 0 then jumpCooldown -= deltaTime end
+
 		local currentTime = tick()
 		local actualDelta = math.min(currentTime - lastPlaybackTime, 0.1)
 		lastPlaybackTime = currentTime
@@ -675,6 +684,9 @@ local function startPlayback(data, onComplete)
 		local interpYaw = lerpAngle(yaw0, yaw1, alpha)
 		local hrp = character.HumanoidRootPart
 
+		local shouldBeGrounded = (f0.state == "Running" or f0.state == "RunningNoPhysics" or f0.state == "Landed")
+		local nearGround, _ = isNearGround(hrp.Position, 4)
+
 		local correctedY = interpPos.Y + heightOffset
 		local targetCFrame = CFrame.new(interpPos.X, correctedY, interpPos.Z) * CFrame.Angles(0, interpYaw, 0)
 		local targetFlipRotation = isFlipped and CFrame.Angles(0, math.pi, 0) or CFrame.new()
@@ -685,20 +697,40 @@ local function startPlayback(data, onComplete)
 		simulateNaturalMovement(interpMove, interpVel)
 
 		pcall(function()
-			hrp.AssemblyLinearVelocity = interpVel
+			local currentVel = hrp.AssemblyLinearVelocity
+			local smoothedX = lerp(currentVel.X, interpVel.X, 0.75)
+			local smoothedY = lerp(currentVel.Y, interpVel.Y, 0.75)
+			local smoothedZ = lerp(currentVel.Z, interpVel.Z, 0.75)
+
+			if lastYVelocity < -5 and smoothedY > -2 and nearGround then
+				landingCooldown = 0.25
+				smoothedY = 0
+				if humanoid:GetState() ~= Enum.HumanoidStateType.Running then
+					humanoid:ChangeState(Enum.HumanoidStateType.Running)
+				end
+			end
+
+			hrp.AssemblyLinearVelocity = Vector3.new(smoothedX, smoothedY, smoothedZ)
+			lastYVelocity = smoothedY
 		end)
 
 		if humanoid then
-			humanoid:Move(interpMove, false)
+			local smoothedMove = humanoid.MoveDirection:Lerp(interpMove, 0.6)
+			humanoid:Move(smoothedMove, false)
 		end
 
-		-- Handle jumping
-		local jumpingNow = f0.jumping or false
-		if f1.jumping then jumpingNow = true end
-		if jumpingNow and not lastJumping then
-			if humanoid then
-				humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-			end
+		-- Jump handling
+		local jumpingNow = f0.jumping or f1.jumping or false
+		if jumpingNow and not lastJumping and jumpCooldown <= 0 then
+			humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+			task.spawn(function()
+				task.wait(0.02)
+				if hrp then
+					local currentVel = hrp.AssemblyLinearVelocity
+					hrp.AssemblyLinearVelocity = Vector3.new(currentVel.X, math.max(currentVel.Y, 50), currentVel.Z)
+				end
+			end)
+			jumpCooldown = 0.6
 		end
 		lastJumping = jumpingNow
 	end)
