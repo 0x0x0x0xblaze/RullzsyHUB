@@ -1671,7 +1671,7 @@ PlayerTab:CreateToggle({
 -- Slider Walk Speed
 PlayerTab:CreateSlider({
     Name = "[◉] Set Walk Speed",
-    Range = {16, 35},
+    Range = {16, 100},
     Increment = 1,
     Suffix = "x Speed (Default 16x)",
     CurrentValue = 16,
