@@ -56,7 +56,7 @@ local UpdateTab = Window:CreateTab("Update Script", "file")
 --| =========================================================== |--
 --| USER INTERFACE                                              |--
 --| =========================================================== |--
-local Section = ScriptTab:CreateSection("🔴 Total Map: 15")
+local Section = ScriptTab:CreateSection("🔴 Total Map: 16")
 
 local Divider = ScriptTab:CreateDivider()
 
