@@ -400,7 +400,7 @@ BypassTab:CreateToggle({
 --| =========================================================== |--
 -- Folder Path Auto Walk
 local mainFolder = "X_RULLZSYHUB_X"
-local jsonFolder = mainFolder .. "/json_mount_sakahayang_patch_001"
+local jsonFolder = mainFolder .. "/json_mount_sakahayang_medium_patch_001"
 if not isfolder(mainFolder) then
     makefolder(mainFolder)
 end
@@ -409,7 +409,7 @@ if not isfolder(jsonFolder) then
 end
 
 -- JSON Auto Walk Files
-local baseURL = "https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/json/json_mount_sakahayang/"
+local baseURL = "https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/json/json_mount_sakahayang_medium/"
 local jsonFiles = {
     "spawnpoint.json",
     "checkpoint_1.json",
