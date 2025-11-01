@@ -411,7 +411,6 @@ end
 -- JSON Auto Walk Files
 local baseURL = "https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/json/json_mount_anj/"
 local jsonFiles = {
-    "spawnpoint.json",
     "checkpoint_1.json",
     "checkpoint_2.json",
     "checkpoint_3.json",
@@ -504,6 +503,7 @@ local function playFootstepSound()
 			elseif material == Enum.Material.Wood then
 				soundId = "rbxassetid://9118828605"
 			end
+
 			sound.SoundId = soundId
 			sound.Parent = hrp
 			sound:Play()
@@ -841,17 +841,17 @@ local function playCheckpointSequence(startIndex)
     if not isLoopingEnabled then
         return
     end
-
+    
     isLoopingActive = true
     local currentIndex = startIndex
-
+    
     local function playNext()
         if not isLoopingEnabled or not isLoopingActive then
             return
         end
-
+        
         local fileName = jsonFiles[currentIndex]
-
+        
         local ok, path = EnsureJsonFile(fileName)
         if not ok then
             Rayfield:Notify({
@@ -863,7 +863,7 @@ local function playCheckpointSequence(startIndex)
             stopPlayback(true)
             return
         end
-
+        
         local data = loadCheckpoint(fileName)
         if not data or #data == 0 then
             Rayfield:Notify({
@@ -875,10 +875,13 @@ local function playCheckpointSequence(startIndex)
             stopPlayback(true)
             return
         end
+        
         currentCheckpoint = currentIndex
+        
+        -- ===== KODE PERBAIKAN DIMULAI =====
         local hrp = character and character:FindFirstChild("HumanoidRootPart")
         local humanoidLocal = character and character:FindFirstChildOfClass("Humanoid")
-
+        
         if not hrp or not humanoidLocal then
             Rayfield:Notify({
                 Title = "Error (Loop)",
@@ -889,13 +892,15 @@ local function playCheckpointSequence(startIndex)
             stopPlayback(true)
             return
         end
-
+        
         local startPos = tableToVec(data[1].position)
         local distance = (hrp.Position - startPos).Magnitude
+        
+        -- Jika jarak lebih dari 10 studs, berjalan ke titik awal dulu
         if distance > 10 then
             local reached = false
             local moveConnection
-
+            
             moveConnection = humanoidLocal.MoveToFinished:Connect(function(r)
                 reached = true
                 if moveConnection then
@@ -903,21 +908,21 @@ local function playCheckpointSequence(startIndex)
                     moveConnection = nil
                 end
             end)
-
+            
             humanoidLocal:MoveTo(startPos)
-
+            
             local startTime = tick()
             local maxWaitTime = 15
-
+            
             while not reached and (tick() - startTime) < maxWaitTime do
                 task.wait(0.1)
             end
-
+            
             if moveConnection then
                 moveConnection:Disconnect()
                 moveConnection = nil
             end
-
+            
             if not reached then
                 Rayfield:Notify({
                     Title = "Auto Walk (Loop)",
@@ -929,34 +934,19 @@ local function playCheckpointSequence(startIndex)
                 return
             end
         end
+        -- ===== KODE PERBAIKAN SELESAI =====
+        
         startPlayback(data, function()
             if not isLoopingEnabled or not isLoopingActive then
                 return
             end
             task.wait(0.1)
-            local nextIndex
-            if currentIndex < #jsonFiles then
-                nextIndex = currentIndex + 1
-            else
-                nextIndex = nil
-            end
-
-            if nextIndex then
-                currentIndex = nextIndex
-                playNext()
-            else
-                Rayfield:Notify({
-                    Title = "Auto Walk",
-                    Content = "Semua checkpoint telah selesai! Silahkan masukan command !rejoin dan jalankan ulang script nya.",
-                    Duration = 4,
-                    Image = "check-check"
-                })
-                stopPlayback(true)
-                isLoopingActive = false
-            end
+            local nextIndex = getNextCheckpointIndex(currentIndex)
+            currentIndex = nextIndex
+            playNext()
         end)
     end
-
+    
     playNext()
 end
 
@@ -1493,7 +1483,7 @@ local LoopingToggle = AutoWalkTab:CreateToggle({
 -- Slider: Speed Control
 local SpeedSlider = AutoWalkTab:CreateSlider({
     Name = "[◉] Speed Auto Walk",
-    Range = {0.5, 1.2},
+    Range = {0.5, 1.1},
     Increment = 0.10,
     Suffix = "x Speed (Default 1x)",
     CurrentValue = 1.0,
@@ -1513,6 +1503,10 @@ local SpeedSlider = AutoWalkTab:CreateSlider({
 
 -- Section: Manual Controls
 local Section = AutoWalkTab:CreateSection("Auto Walk (Manual)")
+
+-- =========================================================== --
+-- | AUTO WALK CHECKPOINT BERURUTAN (1–27)                   | --
+-- =========================================================== --
 
 -- Toggle: Checkpoint 1
 local CP1Toggle = AutoWalkTab:CreateToggle({
@@ -1873,6 +1867,86 @@ local CP27Toggle = AutoWalkTab:CreateToggle({
 --| =========================================================== |--
 --| PLAYER MENU                                                 |--
 --| =========================================================== |--
+-- Section Nametag Menu
+local Section = PlayerTab:CreateSection("Nametag Menu")
+
+-- Toggle Hidenametag
+local HideNametagToggle = PlayerTab:CreateToggle({
+    Name = "[◉] Hide Nametags",
+    CurrentValue = false,
+    Callback = function(Value)
+        local function hideNametagsForCharacter(character)
+            if not character then return end
+            local head = character:FindFirstChild("Head")
+            if not head then return end
+            for _, obj in pairs(head:GetChildren()) do
+                if obj:IsA("BillboardGui") then
+                    obj.Enabled = false
+                end
+            end
+        end
+
+        local function showNametagsForCharacter(character)
+            if not character then return end
+            local head = character:FindFirstChild("Head")
+            if not head then return end
+            for _, obj in pairs(head:GetChildren()) do
+                if obj:IsA("BillboardGui") then
+                    obj.Enabled = true
+                end
+            end
+        end
+
+        local function setNametagsVisible(state)
+            for _, player in pairs(Players:GetPlayers()) do
+                if player.Character then
+                    if state then
+                        showNametagsForCharacter(player.Character)
+                    else
+                        hideNametagsForCharacter(player.Character)
+                    end
+                end
+            end
+        end
+
+        if Value then
+            setNametagsVisible(false)
+            nametagConnections = {}
+            local function connectPlayer(player)
+                local charAddedConn
+                charAddedConn = player.CharacterAdded:Connect(function(char)
+                    task.wait(1)
+                    hideNametagsForCharacter(char)
+                end)
+                table.insert(nametagConnections, charAddedConn)
+            end
+            for _, player in pairs(Players:GetPlayers()) do
+                connectPlayer(player)
+            end
+            table.insert(nametagConnections, Players.PlayerAdded:Connect(connectPlayer))
+			Rayfield:Notify({
+				Image = "user-cog",
+                Title = "Hide Nametag",
+                Content = "Berhasil diaktifkan.",
+                Duration = 3
+            })
+        else
+            setNametagsVisible(true)
+            if nametagConnections then
+                for _, conn in pairs(nametagConnections) do
+                    if conn.Connected then conn:Disconnect() end
+                end
+            end
+            nametagConnections = nil
+			Rayfield:Notify({
+				Image = "user-cog",
+                Title = "Hide Nametag",
+                Content = "Berhasil dimatikan.",
+                Duration = 3
+            })
+        end
+    end,
+})
 
 -- Variable Walk Speed
 local WalkSpeedEnabled = false
@@ -1947,6 +2021,68 @@ PlayerTab:CreateSlider({
         if Char and Char:FindFirstChild("Humanoid") and WalkSpeedEnabled then
             Char.Humanoid.WalkSpeed = WalkSpeedValue
         end
+    end,
+})
+
+-- Variable Time Changer
+local Lighting = game:GetService("Lighting")
+local TimeLockEnabled = false
+local CurrentTimeValue = 12
+
+-- Function apply time
+local function ApplyTimeChange(Value)
+    if typeof(Value) == "number" then
+        Lighting.ClockTime = Value
+        CurrentTimeValue = Value
+    end
+end
+
+-- Keep the time locked if user wants constant lighting
+task.spawn(function()
+    while task.wait(1) do
+        if TimeLockEnabled then
+            Lighting.ClockTime = CurrentTimeValue
+        end
+    end
+end)
+
+-- Section
+local Section = PlayerTab:CreateSection("Time Menu")
+
+-- Toggle Time Changer
+PlayerTab:CreateToggle({
+    Name = "[◉] Lock Time",
+    CurrentValue = false,
+    Callback = function(Value)
+        TimeLockEnabled = Value
+
+        if Value then
+            Rayfield:Notify({
+                Image = "user-cog",
+                Title = "Lock Time",
+                Content = "Berhasil diaktifkan.",
+                Duration = 3
+            })
+        else
+            Rayfield:Notify({
+                Image = "user-cog",
+                Title = "Lock Time",
+                Content = "Berhasil dimatikan.",
+                Duration = 3
+            })
+        end
+    end,
+})
+
+-- Slider Time Changer
+PlayerTab:CreateSlider({
+    Name = "[◉] Set Time of Day",
+    Range = {0, 24},
+    Increment = 1,
+    Suffix = "Hours",
+    CurrentValue = 12,
+    Callback = function(Value)
+        ApplyTimeChange(Value)
     end,
 })
 --| =========================================================== |--
