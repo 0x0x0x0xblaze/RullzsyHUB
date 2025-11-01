@@ -320,7 +320,7 @@ local Paragraph = BypassTab:CreateParagraph({
 --| =========================================================== |--
 -- Folder Path Auto Walk
 local mainFolder = "X_RULLZSYHUB_X"
-local jsonFolder = mainFolder .. "/json_mount_freestyle_patch_001"
+local jsonFolder = mainFolder .. "/json_mount_freestyle_patch_002"
 if not isfolder(mainFolder) then
     makefolder(mainFolder)
 end
