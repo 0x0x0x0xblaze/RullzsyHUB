@@ -62,7 +62,6 @@ local StarterGui = game:GetService("StarterGui")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
-local VirtualUser = game:GetService("VirtualUser")
 
 -- Import
 local player = Players.LocalPlayer
@@ -307,87 +306,9 @@ AccountTab:CreateDivider()
 --| =========================================================== |--
 --| BYPASS                                                      |--
 --| =========================================================== |--
--- Variable Anti Idle
-getgenv().AntiIdleActive = false
-local AntiIdleConnection
-local MovementLoop
-
--- Function start idle
-local function StartAntiIdle()
-    if AntiIdleConnection then
-        AntiIdleConnection:Disconnect()
-        AntiIdleConnection = nil
-    end
-    if MovementLoop then
-        MovementLoop:Disconnect()
-        MovementLoop = nil
-    end
-    AntiIdleConnection = LocalPlayer.Idled:Connect(function()
-        if getgenv().AntiIdleActive then
-            VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-            task.wait(1)
-            VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-        end
-    end)
-    MovementLoop = RunService.Heartbeat:Connect(function()
-        if getgenv().AntiIdleActive and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local root = LocalPlayer.Character.HumanoidRootPart
-            if tick() % 60 < 0.05 then
-                root.CFrame = root.CFrame * CFrame.new(0, 0, 0.1)
-                task.wait(0.1)
-                root.CFrame = root.CFrame * CFrame.new(0, 0, -0.1)
-            end
-        end
-    end)
-end
-
--- Respawn Validation
-local function SetupCharacterListener()
-    LocalPlayer.CharacterAdded:Connect(function(newChar)
-        newChar:WaitForChild("HumanoidRootPart", 10)
-        if getgenv().AntiIdleActive then
-            StartAntiIdle()
-        end
-    end)
-end
-
-StartAntiIdle()
-SetupCharacterListener()
-
--- Section
-local Section = BypassTab:CreateSection("List All Bypass")
-
-BypassTab:CreateToggle({
-    Name = "[◉] Bypass AFK",
-    CurrentValue = false,
-    Flag = "AntiIdleToggle",
-    Callback = function(Value)
-        getgenv().AntiIdleActive = Value
-        if Value then
-            StartAntiIdle()
-            Rayfield:Notify({
-                Image = "shield",
-                Title = "Bypass AFK",
-                Content = "Bypass AFK diaktifkan.",
-                Duration = 5
-            })
-        else
-            if AntiIdleConnection then
-                AntiIdleConnection:Disconnect()
-                AntiIdleConnection = nil
-            end
-            if MovementLoop then
-                MovementLoop:Disconnect()
-                MovementLoop = nil
-            end
-            Rayfield:Notify({
-                Image = "shield",
-                Title = "Bypass AFK",
-                Content = "Bypass AFK dimatikan.",
-                Duration = 5
-            })
-        end
-    end,
+local Paragraph = BypassTab:CreateParagraph({
+   Title = "Keterangan !!!",
+   Content = "⚠️ Bypass afk belum tersedia untuk mount gemi, solusi bypass afk di server yntkts pake Auto Clicker."
 })
 --| =========================================================== |--
 --| BYPASS - END                                                |--
@@ -1216,7 +1137,6 @@ local function createPauseRotateUI()
     
     local dragging = false
     local dragInput, dragStart, startPos
-    local UserInputService = game:GetService("UserInputService")
     
     local function update(input)
         local delta = input.Position - dragStart
@@ -2426,242 +2346,155 @@ PlayerTab:CreateSlider({
 -----| ID ANIMATION |-----
 local Section = RunAnimationTab:CreateSection("Animation Pack List")
 
------| ID ANIMATION |-----
 local RunAnimations = {
     ["Run Animation 1"] = {
-        Idle1   = "rbxassetid://122257458498464",
-        Idle2   = "rbxassetid://102357151005774",
-        Walk    = "http://www.roblox.com/asset/?id=18537392113",
-        Run     = "rbxassetid://82598234841035",
-        Jump    = "rbxassetid://75290611992385",
-        Fall    = "http://www.roblox.com/asset/?id=11600206437",
-        Climb   = "http://www.roblox.com/asset/?id=10921257536",
-        Swim    = "http://www.roblox.com/asset/?id=10921264784",
-        SwimIdle= "http://www.roblox.com/asset/?id=10921265698"
+        Idle1="rbxassetid://122257458498464", Idle2="rbxassetid://102357151005774",
+        Walk="http://www.roblox.com/asset/?id=18537392113", Run="rbxassetid://82598234841035",
+        Jump="rbxassetid://75290611992385", Fall="http://www.roblox.com/asset/?id=11600206437",
+        Climb="http://www.roblox.com/asset/?id=10921257536", Swim="http://www.roblox.com/asset/?id=10921264784",
+        SwimIdle="http://www.roblox.com/asset/?id=10921265698"
     },
     ["Run Animation 2"] = {
-        Idle1   = "rbxassetid://122257458498464",
-        Idle2   = "rbxassetid://102357151005774",
-        Walk    = "rbxassetid://122150855457006",
-        Run     = "rbxassetid://82598234841035",
-        Jump    = "rbxassetid://75290611992385",
-        Fall    = "rbxassetid://98600215928904",
-        Climb   = "rbxassetid://88763136693023",
-        Swim    = "rbxassetid://133308483266208",
-        SwimIdle= "rbxassetid://109346520324160"
+        Idle1="rbxassetid://122257458498464", Idle2="rbxassetid://102357151005774",
+        Walk="rbxassetid://122150855457006", Run="rbxassetid://82598234841035",
+        Jump="rbxassetid://75290611992385", Fall="rbxassetid://98600215928904",
+        Climb="rbxassetid://88763136693023", Swim="rbxassetid://133308483266208",
+        SwimIdle="rbxassetid://109346520324160"
     },
     ["Run Animation 3"] = {
-        Idle1   = "http://www.roblox.com/asset/?id=18537376492",
-        Idle2   = "http://www.roblox.com/asset/?id=18537371272",
-        Walk    = "http://www.roblox.com/asset/?id=18537392113",
-        Run     = "http://www.roblox.com/asset/?id=18537384940",
-        Jump    = "http://www.roblox.com/asset/?id=18537380791",
-        Fall    = "http://www.roblox.com/asset/?id=18537367238",
-        Climb   = "http://www.roblox.com/asset/?id=10921271391",
-        Swim    = "http://www.roblox.com/asset/?id=99384245425157",
-        SwimIdle= "http://www.roblox.com/asset/?id=113199415118199"
+        Idle1="http://www.roblox.com/asset/?id=18537376492", Idle2="http://www.roblox.com/asset/?id=18537371272",
+        Walk="http://www.roblox.com/asset/?id=18537392113", Run="http://www.roblox.com/asset/?id=18537384940",
+        Jump="http://www.roblox.com/asset/?id=18537380791", Fall="http://www.roblox.com/asset/?id=18537367238",
+        Climb="http://www.roblox.com/asset/?id=10921271391", Swim="http://www.roblox.com/asset/?id=99384245425157",
+        SwimIdle="http://www.roblox.com/asset/?id=113199415118199"
     },
     ["Run Animation 4"] = {
-        Idle1   = "http://www.roblox.com/asset/?id=118832222982049",
-        Idle2   = "http://www.roblox.com/asset/?id=76049494037641",
-        Walk    = "http://www.roblox.com/asset/?id=92072849924640",
-        Run     = "http://www.roblox.com/asset/?id=72301599441680",
-        Jump    = "http://www.roblox.com/asset/?id=104325245285198",
-        Fall    = "http://www.roblox.com/asset/?id=121152442762481",
-        Climb   = "http://www.roblox.com/asset/?id=507765644",
-        Swim    = "http://www.roblox.com/asset/?id=99384245425157",
-        SwimIdle= "http://www.roblox.com/asset/?id=113199415118199"
+        Idle1="http://www.roblox.com/asset/?id=118832222982049", Idle2="http://www.roblox.com/asset/?id=76049494037641",
+        Walk="http://www.roblox.com/asset/?id=92072849924640", Run="http://www.roblox.com/asset/?id=72301599441680",
+        Jump="http://www.roblox.com/asset/?id=104325245285198", Fall="http://www.roblox.com/asset/?id=121152442762481",
+        Climb="http://www.roblox.com/asset/?id=507765644", Swim="http://www.roblox.com/asset/?id=99384245425157",
+        SwimIdle="http://www.roblox.com/asset/?id=113199415118199"
     },
     ["Run Animation 5"] = {
-        Idle1   = "http://www.roblox.com/asset/?id=656117400",
-        Idle2   = "http://www.roblox.com/asset/?id=656118341",
-        Walk    = "http://www.roblox.com/asset/?id=656121766",
-        Run     = "http://www.roblox.com/asset/?id=656118852",
-        Jump    = "http://www.roblox.com/asset/?id=656117878",
-        Fall    = "http://www.roblox.com/asset/?id=656115606",
-        Climb   = "http://www.roblox.com/asset/?id=656114359",
-        Swim    = "http://www.roblox.com/asset/?id=910028158",
-        SwimIdle= "http://www.roblox.com/asset/?id=910030921"
+        Idle1="http://www.roblox.com/asset/?id=656117400", Idle2="http://www.roblox.com/asset/?id=656118341",
+        Walk="http://www.roblox.com/asset/?id=656121766", Run="http://www.roblox.com/asset/?id=656118852",
+        Jump="http://www.roblox.com/asset/?id=656117878", Fall="http://www.roblox.com/asset/?id=656115606",
+        Climb="http://www.roblox.com/asset/?id=656114359", Swim="http://www.roblox.com/asset/?id=910028158",
+        SwimIdle="http://www.roblox.com/asset/?id=910030921"
     },
     ["Run Animation 6"] = {
-        Idle1   = "http://www.roblox.com/asset/?id=616006778",
-        Idle2   = "http://www.roblox.com/asset/?id=616008087",
-        Walk    = "http://www.roblox.com/asset/?id=616013216",
-        Run     = "http://www.roblox.com/asset/?id=616010382",
-        Jump    = "http://www.roblox.com/asset/?id=616008936",
-        Fall    = "http://www.roblox.com/asset/?id=616005863",
-        Climb   = "http://www.roblox.com/asset/?id=616003713",
-        Swim    = "http://www.roblox.com/asset/?id=910028158",
-        SwimIdle= "http://www.roblox.com/asset/?id=910030921"
+        Idle1="http://www.roblox.com/asset/?id=616006778", Idle2="http://www.roblox.com/asset/?id=616008087",
+        Walk="http://www.roblox.com/asset/?id=616013216", Run="http://www.roblox.com/asset/?id=616010382",
+        Jump="http://www.roblox.com/asset/?id=616008936", Fall="http://www.roblox.com/asset/?id=616005863",
+        Climb="http://www.roblox.com/asset/?id=616003713", Swim="http://www.roblox.com/asset/?id=910028158",
+        SwimIdle="http://www.roblox.com/asset/?id=910030921"
     },
     ["Run Animation 7"] = {
-        Idle1   = "http://www.roblox.com/asset/?id=1083195517",
-        Idle2   = "http://www.roblox.com/asset/?id=1083214717",
-        Walk    = "http://www.roblox.com/asset/?id=1083178339",
-        Run     = "http://www.roblox.com/asset/?id=1083216690",
-        Jump    = "http://www.roblox.com/asset/?id=1083218792",
-        Fall    = "http://www.roblox.com/asset/?id=1083189019",
-        Climb   = "http://www.roblox.com/asset/?id=1083182000",
-        Swim    = "http://www.roblox.com/asset/?id=910028158",
-        SwimIdle= "http://www.roblox.com/asset/?id=910030921"
+        Idle1="http://www.roblox.com/asset/?id=1083195517", Idle2="http://www.roblox.com/asset/?id=1083214717",
+        Walk="http://www.roblox.com/asset/?id=1083178339", Run="http://www.roblox.com/asset/?id=1083216690",
+        Jump="http://www.roblox.com/asset/?id=1083218792", Fall="http://www.roblox.com/asset/?id=1083189019",
+        Climb="http://www.roblox.com/asset/?id=1083182000", Swim="http://www.roblox.com/asset/?id=910028158",
+        SwimIdle="http://www.roblox.com/asset/?id=910030921"
     },
     ["Run Animation 8"] = {
-        Idle1   = "http://www.roblox.com/asset/?id=616136790",
-        Idle2   = "http://www.roblox.com/asset/?id=616138447",
-        Walk    = "http://www.roblox.com/asset/?id=616146177",
-        Run     = "http://www.roblox.com/asset/?id=616140816",
-        Jump    = "http://www.roblox.com/asset/?id=616139451",
-        Fall    = "http://www.roblox.com/asset/?id=616134815",
-        Climb   = "http://www.roblox.com/asset/?id=616133594",
-        Swim    = "http://www.roblox.com/asset/?id=910028158",
-        SwimIdle= "http://www.roblox.com/asset/?id=910030921"
+        Idle1="http://www.roblox.com/asset/?id=616136790", Idle2="http://www.roblox.com/asset/?id=616138447",
+        Walk="http://www.roblox.com/asset/?id=616146177", Run="http://www.roblox.com/asset/?id=616140816",
+        Jump="http://www.roblox.com/asset/?id=616139451", Fall="http://www.roblox.com/asset/?id=616134815",
+        Climb="http://www.roblox.com/asset/?id=616133594", Swim="http://www.roblox.com/asset/?id=910028158",
+        SwimIdle="http://www.roblox.com/asset/?id=910030921"
     },
     ["Run Animation 9"] = {
-        Idle1   = "http://www.roblox.com/asset/?id=616088211",
-        Idle2   = "http://www.roblox.com/asset/?id=616089559",
-        Walk    = "http://www.roblox.com/asset/?id=616095330",
-        Run     = "http://www.roblox.com/asset/?id=616091570",
-        Jump    = "http://www.roblox.com/asset/?id=616090535",
-        Fall    = "http://www.roblox.com/asset/?id=616087089",
-        Climb   = "http://www.roblox.com/asset/?id=616086039",
-        Swim    = "http://www.roblox.com/asset/?id=910028158",
-        SwimIdle= "http://www.roblox.com/asset/?id=910030921"
+        Idle1="http://www.roblox.com/asset/?id=616088211", Idle2="http://www.roblox.com/asset/?id=616089559",
+        Walk="http://www.roblox.com/asset/?id=616095330", Run="http://www.roblox.com/asset/?id=616091570",
+        Jump="http://www.roblox.com/asset/?id=616090535", Fall="http://www.roblox.com/asset/?id=616087089",
+        Climb="http://www.roblox.com/asset/?id=616086039", Swim="http://www.roblox.com/asset/?id=910028158",
+        SwimIdle="http://www.roblox.com/asset/?id=910030921"
     },
     ["Run Animation 10"] = {
-        Idle1   = "http://www.roblox.com/asset/?id=910004836",
-        Idle2   = "http://www.roblox.com/asset/?id=910009958",
-        Walk    = "http://www.roblox.com/asset/?id=910034870",
-        Run     = "http://www.roblox.com/asset/?id=910025107",
-        Jump    = "http://www.roblox.com/asset/?id=910016857",
-        Fall    = "http://www.roblox.com/asset/?id=910001910",
-        Climb   = "http://www.roblox.com/asset/?id=616086039",
-        Swim    = "http://www.roblox.com/asset/?id=910028158",
-        SwimIdle= "http://www.roblox.com/asset/?id=910030921"
+        Idle1="http://www.roblox.com/asset/?id=910004836", Idle2="http://www.roblox.com/asset/?id=910009958",
+        Walk="http://www.roblox.com/asset/?id=910034870", Run="http://www.roblox.com/asset/?id=910025107",
+        Jump="http://www.roblox.com/asset/?id=910016857", Fall="http://www.roblox.com/asset/?id=910001910",
+        Climb="http://www.roblox.com/asset/?id=616086039", Swim="http://www.roblox.com/asset/?id=910028158",
+        SwimIdle="http://www.roblox.com/asset/?id=910030921"
     },
     ["Run Animation 11"] = {
-        Idle1   = "http://www.roblox.com/asset/?id=742637544",
-        Idle2   = "http://www.roblox.com/asset/?id=742638445",
-        Walk    = "http://www.roblox.com/asset/?id=742640026",
-        Run     = "http://www.roblox.com/asset/?id=742638842",
-        Jump    = "http://www.roblox.com/asset/?id=742637942",
-        Fall    = "http://www.roblox.com/asset/?id=742637151",
-        Climb   = "http://www.roblox.com/asset/?id=742636889",
-        Swim    = "http://www.roblox.com/asset/?id=910028158",
-        SwimIdle= "http://www.roblox.com/asset/?id=910030921"
+        Idle1="http://www.roblox.com/asset/?id=742637544", Idle2="http://www.roblox.com/asset/?id=742638445",
+        Walk="http://www.roblox.com/asset/?id=742640026", Run="http://www.roblox.com/asset/?id=742638842",
+        Jump="http://www.roblox.com/asset/?id=742637942", Fall="http://www.roblox.com/asset/?id=742637151",
+        Climb="http://www.roblox.com/asset/?id=742636889", Swim="http://www.roblox.com/asset/?id=910028158",
+        SwimIdle="http://www.roblox.com/asset/?id=910030921"
     },
     ["Run Animation 12"] = {
-        Idle1   = "http://www.roblox.com/asset/?id=616111295",
-        Idle2   = "http://www.roblox.com/asset/?id=616113536",
-        Walk    = "http://www.roblox.com/asset/?id=616122287",
-        Run     = "http://www.roblox.com/asset/?id=616117076",
-        Jump    = "http://www.roblox.com/asset/?id=616115533",
-        Fall    = "http://www.roblox.com/asset/?id=616108001",
-        Climb   = "http://www.roblox.com/asset/?id=616104706",
-        Swim    = "http://www.roblox.com/asset/?id=910028158",
-        SwimIdle= "http://www.roblox.com/asset/?id=910030921"
+        Idle1="http://www.roblox.com/asset/?id=616111295", Idle2="http://www.roblox.com/asset/?id=616113536",
+        Walk="http://www.roblox.com/asset/?id=616122287", Run="http://www.roblox.com/asset/?id=616117076",
+        Jump="http://www.roblox.com/asset/?id=616115533", Fall="http://www.roblox.com/asset/?id=616108001",
+        Climb="http://www.roblox.com/asset/?id=616104706", Swim="http://www.roblox.com/asset/?id=910028158",
+        SwimIdle="http://www.roblox.com/asset/?id=910030921"
     },
     ["Run Animation 13"] = {
-        Idle1   = "http://www.roblox.com/asset/?id=657595757",
-        Idle2   = "http://www.roblox.com/asset/?id=657568135",
-        Walk    = "http://www.roblox.com/asset/?id=657552124",
-        Run     = "http://www.roblox.com/asset/?id=657564596",
-        Jump    = "http://www.roblox.com/asset/?id=658409194",
-        Fall    = "http://www.roblox.com/asset/?id=657600338",
-        Climb   = "http://www.roblox.com/asset/?id=658360781",
-        Swim    = "http://www.roblox.com/asset/?id=910028158",
-        SwimIdle= "http://www.roblox.com/asset/?id=910030921"
+        Idle1="http://www.roblox.com/asset/?id=657595757", Idle2="http://www.roblox.com/asset/?id=657568135",
+        Walk="http://www.roblox.com/asset/?id=657552124", Run="http://www.roblox.com/asset/?id=657564596",
+        Jump="http://www.roblox.com/asset/?id=658409194", Fall="http://www.roblox.com/asset/?id=657600338",
+        Climb="http://www.roblox.com/asset/?id=658360781", Swim="http://www.roblox.com/asset/?id=910028158",
+        SwimIdle="http://www.roblox.com/asset/?id=910030921"
     },
     ["Run Animation 14"] = {
-        Idle1   = "http://www.roblox.com/asset/?id=616158929",
-        Idle2   = "http://www.roblox.com/asset/?id=616160636",
-        Walk    = "http://www.roblox.com/asset/?id=616168032",
-        Run     = "http://www.roblox.com/asset/?id=616163682",
-        Jump    = "http://www.roblox.com/asset/?id=616161997",
-        Fall    = "http://www.roblox.com/asset/?id=616157476",
-        Climb   = "http://www.roblox.com/asset/?id=616156119",
-        Swim    = "http://www.roblox.com/asset/?id=910028158",
-        SwimIdle= "http://www.roblox.com/asset/?id=910030921"
+        Idle1="http://www.roblox.com/asset/?id=616158929", Idle2="http://www.roblox.com/asset/?id=616160636",
+        Walk="http://www.roblox.com/asset/?id=616168032", Run="http://www.roblox.com/asset/?id=616163682",
+        Jump="http://www.roblox.com/asset/?id=616161997", Fall="http://www.roblox.com/asset/?id=616157476",
+        Climb="http://www.roblox.com/asset/?id=616156119", Swim="http://www.roblox.com/asset/?id=910028158",
+        SwimIdle="http://www.roblox.com/asset/?id=910030921"
     },
     ["Run Animation 15"] = {
-        Idle1   = "http://www.roblox.com/asset/?id=845397899",
-        Idle2   = "http://www.roblox.com/asset/?id=845400520",
-        Walk    = "http://www.roblox.com/asset/?id=845403856",
-        Run     = "http://www.roblox.com/asset/?id=845386501",
-        Jump    = "http://www.roblox.com/asset/?id=845398858",
-        Fall    = "http://www.roblox.com/asset/?id=845396048",
-        Climb   = "http://www.roblox.com/asset/?id=845392038",
-        Swim    = "http://www.roblox.com/asset/?id=910028158",
-        SwimIdle= "http://www.roblox.com/asset/?id=910030921"
+        Idle1="http://www.roblox.com/asset/?id=845397899", Idle2="http://www.roblox.com/asset/?id=845400520",
+        Walk="http://www.roblox.com/asset/?id=845403856", Run="http://www.roblox.com/asset/?id=845386501",
+        Jump="http://www.roblox.com/asset/?id=845398858", Fall="http://www.roblox.com/asset/?id=845396048",
+        Climb="http://www.roblox.com/asset/?id=845392038", Swim="http://www.roblox.com/asset/?id=910028158",
+        SwimIdle="http://www.roblox.com/asset/?id=910030921"
     },
     ["Run Animation 16"] = {
-        Idle1   = "http://www.roblox.com/asset/?id=782841498",
-        Idle2   = "http://www.roblox.com/asset/?id=782845736",
-        Walk    = "http://www.roblox.com/asset/?id=782843345",
-        Run     = "http://www.roblox.com/asset/?id=782842708",
-        Jump    = "http://www.roblox.com/asset/?id=782847020",
-        Fall    = "http://www.roblox.com/asset/?id=782846423",
-        Climb   = "http://www.roblox.com/asset/?id=782843869",
-        Swim    = "http://www.roblox.com/asset/?id=18537389531",
-        SwimIdle= "http://www.roblox.com/asset/?id=18537387180"
+        Idle1="http://www.roblox.com/asset/?id=782841498", Idle2="http://www.roblox.com/asset/?id=782845736",
+        Walk="http://www.roblox.com/asset/?id=782843345", Run="http://www.roblox.com/asset/?id=782842708",
+        Jump="http://www.roblox.com/asset/?id=782847020", Fall="http://www.roblox.com/asset/?id=782846423",
+        Climb="http://www.roblox.com/asset/?id=782843869", Swim="http://www.roblox.com/asset/?id=18537389531",
+        SwimIdle="http://www.roblox.com/asset/?id=18537387180"
     },
     ["Run Animation 17"] = {
-        Idle1   = "http://www.roblox.com/asset/?id=891621366",
-        Idle2   = "http://www.roblox.com/asset/?id=891633237",
-        Walk    = "http://www.roblox.com/asset/?id=891667138",
-        Run     = "http://www.roblox.com/asset/?id=891636393",
-        Jump    = "http://www.roblox.com/asset/?id=891627522",
-        Fall    = "http://www.roblox.com/asset/?id=891617961",
-        Climb   = "http://www.roblox.com/asset/?id=891609353",
-        Swim    = "http://www.roblox.com/asset/?id=18537389531",
-        SwimIdle= "http://www.roblox.com/asset/?id=18537387180"
+        Idle1="http://www.roblox.com/asset/?id=891621366", Idle2="http://www.roblox.com/asset/?id=891633237",
+        Walk="http://www.roblox.com/asset/?id=891667138", Run="http://www.roblox.com/asset/?id=891636393",
+        Jump="http://www.roblox.com/asset/?id=891627522", Fall="http://www.roblox.com/asset/?id=891617961",
+        Climb="http://www.roblox.com/asset/?id=891609353", Swim="http://www.roblox.com/asset/?id=18537389531",
+        SwimIdle="http://www.roblox.com/asset/?id=18537387180"
     },
     ["Run Animation 18"] = {
-        Idle1   = "http://www.roblox.com/asset/?id=750781874",
-        Idle2   = "http://www.roblox.com/asset/?id=750782770",
-        Walk    = "http://www.roblox.com/asset/?id=750785693",
-        Run     = "http://www.roblox.com/asset/?id=750783738",
-        Jump    = "http://www.roblox.com/asset/?id=750782230",
-        Fall    = "http://www.roblox.com/asset/?id=750780242",
-        Climb   = "http://www.roblox.com/asset/?id=750779899",
-        Swim    = "http://www.roblox.com/asset/?id=18537389531",
-        SwimIdle= "http://www.roblox.com/asset/?id=18537387180"
+        Idle1="http://www.roblox.com/asset/?id=750781874", Idle2="http://www.roblox.com/asset/?id=750782770",
+        Walk="http://www.roblox.com/asset/?id=750785693", Run="http://www.roblox.com/asset/?id=750783738",
+        Jump="http://www.roblox.com/asset/?id=750782230", Fall="http://www.roblox.com/asset/?id=750780242",
+        Climb="http://www.roblox.com/asset/?id=750779899", Swim="http://www.roblox.com/asset/?id=18537389531",
+        SwimIdle="http://www.roblox.com/asset/?id=18537387180"
     },
 }
 
--------------------------------------------------------------
------| STORAGE UNTUK MASING-MASING ANIMATION |-----
-local OriginalAnimations1 = {}
-local OriginalAnimations2 = {}
-local OriginalAnimations3 = {}
-local OriginalAnimations4 = {}
-local OriginalAnimations5 = {}
-local OriginalAnimations6 = {}
-local OriginalAnimations7 = {}
-local OriginalAnimations8 = {}
-local OriginalAnimations9 = {}
-local OriginalAnimations10 = {}
-local OriginalAnimations11 = {}
-local OriginalAnimations12 = {}
-local OriginalAnimations13 = {}
-local OriginalAnimations14 = {}
-local OriginalAnimations15 = {}
-local OriginalAnimations16 = {}
-local OriginalAnimations17 = {}
-local OriginalAnimations18 = {}
+local OriginalAnimations = {}
 
--------------------------------------------------------------
------| FUNGSI UNTUK RUN ANIMATION 1 |-----
-local function SaveOriginal1(Animate)
-    OriginalAnimations1 = {}
+local function SaveOriginal(Char)
+    local Animate = Char:FindFirstChild("Animate")
+    if not Animate then return end
+    local originals = {}
     for _, child in ipairs(Animate:GetDescendants()) do
         if child:IsA("Animation") then
-            OriginalAnimations1[child] = child.AnimationId
+            originals[child] = child.AnimationId
         end
     end
+    OriginalAnimations[Char] = originals
 end
 
-local function ApplyAnimation1(Animate, Humanoid)
-    local pack = RunAnimations["Run Animation 1"]
+local function ApplyAnimation(Char, animName)
+    local Animate, Humanoid = Char:FindFirstChild("Animate"), Char:FindFirstChild("Humanoid")
+    if not (Animate and Humanoid) then return end
+    local pack = RunAnimations[animName]
+    if not pack then return end
+
     Animate.idle.Animation1.AnimationId = pack.Idle1
     Animate.idle.Animation2.AnimationId = pack.Idle2
     Animate.walk.WalkAnim.AnimationId = pack.Walk
@@ -2674,1157 +2507,48 @@ local function ApplyAnimation1(Animate, Humanoid)
     Humanoid.Jump = true
 end
 
-local function RestoreOriginal1()
-    for anim, id in pairs(OriginalAnimations1) do
+local function RestoreOriginal(Char)
+    local originals = OriginalAnimations[Char]
+    if not originals then return end
+    for anim, id in pairs(originals) do
         if anim and anim:IsA("Animation") then
             anim.AnimationId = id
         end
     end
 end
 
------| FUNGSI UNTUK RUN ANIMATION 2 |-----
-local function SaveOriginal2(Animate)
-    OriginalAnimations2 = {}
-    for _, child in ipairs(Animate:GetDescendants()) do
-        if child:IsA("Animation") then
-            OriginalAnimations2[child] = child.AnimationId
-        end
-    end
-end
+-- Toggle
+for i = 1, 18 do
+    local name = "Run Animation " .. i
+    RunAnimationTab:CreateToggle({
+        Name = "[◉] " .. name,
+        CurrentValue = false,
+        Flag = name .. "Toggle",
+        Callback = function(Value)
+            local Char = Players.LocalPlayer.Character
+            if not (Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid")) then return end
 
-local function ApplyAnimation2(Animate, Humanoid)
-    local pack = RunAnimations["Run Animation 2"]
-    Animate.idle.Animation1.AnimationId = pack.Idle1
-    Animate.idle.Animation2.AnimationId = pack.Idle2
-    Animate.walk.WalkAnim.AnimationId = pack.Walk
-    Animate.run.RunAnim.AnimationId = pack.Run
-    Animate.jump.JumpAnim.AnimationId = pack.Jump
-    Animate.fall.FallAnim.AnimationId = pack.Fall
-    Animate.climb.ClimbAnim.AnimationId = pack.Climb
-    Animate.swim.Swim.AnimationId = pack.Swim
-    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
-    Humanoid.Jump = true
-end
-
-local function RestoreOriginal2()
-    for anim, id in pairs(OriginalAnimations2) do
-        if anim and anim:IsA("Animation") then
-            anim.AnimationId = id
-        end
-    end
-end
-
------| FUNGSI UNTUK RUN ANIMATION 3 |-----
-local function SaveOriginal3(Animate)
-    OriginalAnimations3 = {}
-    for _, child in ipairs(Animate:GetDescendants()) do
-        if child:IsA("Animation") then
-            OriginalAnimations3[child] = child.AnimationId
-        end
-    end
-end
-
-local function ApplyAnimation3(Animate, Humanoid)
-    local pack = RunAnimations["Run Animation 3"]
-    Animate.idle.Animation1.AnimationId = pack.Idle1
-    Animate.idle.Animation2.AnimationId = pack.Idle2
-    Animate.walk.WalkAnim.AnimationId = pack.Walk
-    Animate.run.RunAnim.AnimationId = pack.Run
-    Animate.jump.JumpAnim.AnimationId = pack.Jump
-    Animate.fall.FallAnim.AnimationId = pack.Fall
-    Animate.climb.ClimbAnim.AnimationId = pack.Climb
-    Animate.swim.Swim.AnimationId = pack.Swim
-    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
-    Humanoid.Jump = true
-end
-
-local function RestoreOriginal3()
-    for anim, id in pairs(OriginalAnimations3) do
-        if anim and anim:IsA("Animation") then
-            anim.AnimationId = id
-        end
-    end
-end
-
------| FUNGSI UNTUK RUN ANIMATION 4 |-----
-local function SaveOriginal4(Animate)
-    OriginalAnimations4 = {}
-    for _, child in ipairs(Animate:GetDescendants()) do
-        if child:IsA("Animation") then
-            OriginalAnimations4[child] = child.AnimationId
-        end
-    end
-end
-
-local function ApplyAnimation4(Animate, Humanoid)
-    local pack = RunAnimations["Run Animation 4"]
-    Animate.idle.Animation1.AnimationId = pack.Idle1
-    Animate.idle.Animation2.AnimationId = pack.Idle2
-    Animate.walk.WalkAnim.AnimationId = pack.Walk
-    Animate.run.RunAnim.AnimationId = pack.Run
-    Animate.jump.JumpAnim.AnimationId = pack.Jump
-    Animate.fall.FallAnim.AnimationId = pack.Fall
-    Animate.climb.ClimbAnim.AnimationId = pack.Climb
-    Animate.swim.Swim.AnimationId = pack.Swim
-    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
-    Humanoid.Jump = true
-end
-
-local function RestoreOriginal4()
-    for anim, id in pairs(OriginalAnimations4) do
-        if anim and anim:IsA("Animation") then
-            anim.AnimationId = id
-        end
-    end
-end
-
------| FUNGSI UNTUK RUN ANIMATION 5 |-----
-local function SaveOriginal5(Animate)
-    OriginalAnimations5 = {}
-    for _, child in ipairs(Animate:GetDescendants()) do
-        if child:IsA("Animation") then
-            OriginalAnimations5[child] = child.AnimationId
-        end
-    end
-end
-
-local function ApplyAnimation5(Animate, Humanoid)
-    local pack = RunAnimations["Run Animation 5"]
-    Animate.idle.Animation1.AnimationId = pack.Idle1
-    Animate.idle.Animation2.AnimationId = pack.Idle2
-    Animate.walk.WalkAnim.AnimationId = pack.Walk
-    Animate.run.RunAnim.AnimationId = pack.Run
-    Animate.jump.JumpAnim.AnimationId = pack.Jump
-    Animate.fall.FallAnim.AnimationId = pack.Fall
-    Animate.climb.ClimbAnim.AnimationId = pack.Climb
-    Animate.swim.Swim.AnimationId = pack.Swim
-    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
-    Humanoid.Jump = true
-end
-
-local function RestoreOriginal5()
-    for anim, id in pairs(OriginalAnimations5) do
-        if anim and anim:IsA("Animation") then
-            anim.AnimationId = id
-        end
-    end
-end
-
------| FUNGSI UNTUK RUN ANIMATION 6 |-----
-local function SaveOriginal6(Animate)
-    OriginalAnimations6 = {}
-    for _, child in ipairs(Animate:GetDescendants()) do
-        if child:IsA("Animation") then
-            OriginalAnimations6[child] = child.AnimationId
-        end
-    end
-end
-
-local function ApplyAnimation6(Animate, Humanoid)
-    local pack = RunAnimations["Run Animation 6"]
-    Animate.idle.Animation1.AnimationId = pack.Idle1
-    Animate.idle.Animation2.AnimationId = pack.Idle2
-    Animate.walk.WalkAnim.AnimationId = pack.Walk
-    Animate.run.RunAnim.AnimationId = pack.Run
-    Animate.jump.JumpAnim.AnimationId = pack.Jump
-    Animate.fall.FallAnim.AnimationId = pack.Fall
-    Animate.climb.ClimbAnim.AnimationId = pack.Climb
-    Animate.swim.Swim.AnimationId = pack.Swim
-    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
-    Humanoid.Jump = true
-end
-
-local function RestoreOriginal6()
-    for anim, id in pairs(OriginalAnimations6) do
-        if anim and anim:IsA("Animation") then
-            anim.AnimationId = id
-        end
-    end
-end
-
------| FUNGSI UNTUK RUN ANIMATION 7 |-----
-local function SaveOriginal7(Animate)
-    OriginalAnimations7 = {}
-    for _, child in ipairs(Animate:GetDescendants()) do
-        if child:IsA("Animation") then
-            OriginalAnimations7[child] = child.AnimationId
-        end
-    end
-end
-
-local function ApplyAnimation7(Animate, Humanoid)
-    local pack = RunAnimations["Run Animation 7"]
-    Animate.idle.Animation1.AnimationId = pack.Idle1
-    Animate.idle.Animation2.AnimationId = pack.Idle2
-    Animate.walk.WalkAnim.AnimationId = pack.Walk
-    Animate.run.RunAnim.AnimationId = pack.Run
-    Animate.jump.JumpAnim.AnimationId = pack.Jump
-    Animate.fall.FallAnim.AnimationId = pack.Fall
-    Animate.climb.ClimbAnim.AnimationId = pack.Climb
-    Animate.swim.Swim.AnimationId = pack.Swim
-    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
-    Humanoid.Jump = true
-end
-
-local function RestoreOriginal7()
-    for anim, id in pairs(OriginalAnimations7) do
-        if anim and anim:IsA("Animation") then
-            anim.AnimationId = id
-        end
-    end
-end
-
------| FUNGSI UNTUK RUN ANIMATION 8 |-----
-local function SaveOriginal8(Animate)
-    OriginalAnimations8 = {}
-    for _, child in ipairs(Animate:GetDescendants()) do
-        if child:IsA("Animation") then
-            OriginalAnimations8[child] = child.AnimationId
-        end
-    end
-end
-
-local function ApplyAnimation8(Animate, Humanoid)
-    local pack = RunAnimations["Run Animation 8"]
-    Animate.idle.Animation1.AnimationId = pack.Idle1
-    Animate.idle.Animation2.AnimationId = pack.Idle2
-    Animate.walk.WalkAnim.AnimationId = pack.Walk
-    Animate.run.RunAnim.AnimationId = pack.Run
-    Animate.jump.JumpAnim.AnimationId = pack.Jump
-    Animate.fall.FallAnim.AnimationId = pack.Fall
-    Animate.climb.ClimbAnim.AnimationId = pack.Climb
-    Animate.swim.Swim.AnimationId = pack.Swim
-    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
-    Humanoid.Jump = true
-end
-
-local function RestoreOriginal8()
-    for anim, id in pairs(OriginalAnimations8) do
-        if anim and anim:IsA("Animation") then
-            anim.AnimationId = id
-        end
-    end
-end
-
------| FUNGSI UNTUK RUN ANIMATION 9 |-----
-local function SaveOriginal9(Animate)
-    OriginalAnimations9 = {}
-    for _, child in ipairs(Animate:GetDescendants()) do
-        if child:IsA("Animation") then
-            OriginalAnimations9[child] = child.AnimationId
-        end
-    end
-end
-
-local function ApplyAnimation9(Animate, Humanoid)
-    local pack = RunAnimations["Run Animation 9"]
-    Animate.idle.Animation1.AnimationId = pack.Idle1
-    Animate.idle.Animation2.AnimationId = pack.Idle2
-    Animate.walk.WalkAnim.AnimationId = pack.Walk
-    Animate.run.RunAnim.AnimationId = pack.Run
-    Animate.jump.JumpAnim.AnimationId = pack.Jump
-    Animate.fall.FallAnim.AnimationId = pack.Fall
-    Animate.climb.ClimbAnim.AnimationId = pack.Climb
-    Animate.swim.Swim.AnimationId = pack.Swim
-    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
-    Humanoid.Jump = true
-end
-
-local function RestoreOriginal9()
-    for anim, id in pairs(OriginalAnimations9) do
-        if anim and anim:IsA("Animation") then
-            anim.AnimationId = id
-        end
-    end
-end
-
------| FUNGSI UNTUK RUN ANIMATION 10 |-----
-local function SaveOriginal10(Animate)
-    OriginalAnimations10 = {}
-    for _, child in ipairs(Animate:GetDescendants()) do
-        if child:IsA("Animation") then
-            OriginalAnimations10[child] = child.AnimationId
-        end
-    end
-end
-
-local function ApplyAnimation10(Animate, Humanoid)
-    local pack = RunAnimations["Run Animation 10"]
-    Animate.idle.Animation1.AnimationId = pack.Idle1
-    Animate.idle.Animation2.AnimationId = pack.Idle2
-    Animate.walk.WalkAnim.AnimationId = pack.Walk
-    Animate.run.RunAnim.AnimationId = pack.Run
-    Animate.jump.JumpAnim.AnimationId = pack.Jump
-    Animate.fall.FallAnim.AnimationId = pack.Fall
-    Animate.climb.ClimbAnim.AnimationId = pack.Climb
-    Animate.swim.Swim.AnimationId = pack.Swim
-    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
-    Humanoid.Jump = true
-end
-
-local function RestoreOriginal10()
-    for anim, id in pairs(OriginalAnimations10) do
-        if anim and anim:IsA("Animation") then
-            anim.AnimationId = id
-        end
-    end
-end
-
------| FUNGSI UNTUK RUN ANIMATION 11 |-----
-local function SaveOriginal11(Animate)
-    OriginalAnimations11 = {}
-    for _, child in ipairs(Animate:GetDescendants()) do
-        if child:IsA("Animation") then
-            OriginalAnimations11[child] = child.AnimationId
-        end
-    end
-end
-
-local function ApplyAnimation11(Animate, Humanoid)
-    local pack = RunAnimations["Run Animation 11"]
-    Animate.idle.Animation1.AnimationId = pack.Idle1
-    Animate.idle.Animation2.AnimationId = pack.Idle2
-    Animate.walk.WalkAnim.AnimationId = pack.Walk
-    Animate.run.RunAnim.AnimationId = pack.Run
-    Animate.jump.JumpAnim.AnimationId = pack.Jump
-    Animate.fall.FallAnim.AnimationId = pack.Fall
-    Animate.climb.ClimbAnim.AnimationId = pack.Climb
-    Animate.swim.Swim.AnimationId = pack.Swim
-    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
-    Humanoid.Jump = true
-end
-
-local function RestoreOriginal11()
-    for anim, id in pairs(OriginalAnimations11) do
-        if anim and anim:IsA("Animation") then
-            anim.AnimationId = id
-        end
-    end
-end
-
------| FUNGSI UNTUK RUN ANIMATION 12 |-----
-local function SaveOriginal12(Animate)
-    OriginalAnimations12 = {}
-    for _, child in ipairs(Animate:GetDescendants()) do
-        if child:IsA("Animation") then
-            OriginalAnimations12[child] = child.AnimationId
-        end
-    end
-end
-
-local function ApplyAnimation12(Animate, Humanoid)
-    local pack = RunAnimations["Run Animation 12"]
-    Animate.idle.Animation1.AnimationId = pack.Idle1
-    Animate.idle.Animation2.AnimationId = pack.Idle2
-    Animate.walk.WalkAnim.AnimationId = pack.Walk
-    Animate.run.RunAnim.AnimationId = pack.Run
-    Animate.jump.JumpAnim.AnimationId = pack.Jump
-    Animate.fall.FallAnim.AnimationId = pack.Fall
-    Animate.climb.ClimbAnim.AnimationId = pack.Climb
-    Animate.swim.Swim.AnimationId = pack.Swim
-    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
-    Humanoid.Jump = true
-end
-
-local function RestoreOriginal12()
-    for anim, id in pairs(OriginalAnimations12) do
-        if anim and anim:IsA("Animation") then
-            anim.AnimationId = id
-        end
-    end
-end
-
------| FUNGSI UNTUK RUN ANIMATION 13 |-----
-local function SaveOriginal13(Animate)
-    OriginalAnimations13 = {}
-    for _, child in ipairs(Animate:GetDescendants()) do
-        if child:IsA("Animation") then
-            OriginalAnimations13[child] = child.AnimationId
-        end
-    end
-end
-
-local function ApplyAnimation13(Animate, Humanoid)
-    local pack = RunAnimations["Run Animation 13"]
-    Animate.idle.Animation1.AnimationId = pack.Idle1
-    Animate.idle.Animation2.AnimationId = pack.Idle2
-    Animate.walk.WalkAnim.AnimationId = pack.Walk
-    Animate.run.RunAnim.AnimationId = pack.Run
-    Animate.jump.JumpAnim.AnimationId = pack.Jump
-    Animate.fall.FallAnim.AnimationId = pack.Fall
-    Animate.climb.ClimbAnim.AnimationId = pack.Climb
-    Animate.swim.Swim.AnimationId = pack.Swim
-    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
-    Humanoid.Jump = true
-end
-
-local function RestoreOriginal13()
-    for anim, id in pairs(OriginalAnimations13) do
-        if anim and anim:IsA("Animation") then
-            anim.AnimationId = id
-        end
-    end
-end
-
------| FUNGSI UNTUK RUN ANIMATION 14 |-----
-local function SaveOriginal14(Animate)
-    OriginalAnimations14 = {}
-    for _, child in ipairs(Animate:GetDescendants()) do
-        if child:IsA("Animation") then
-            OriginalAnimations14[child] = child.AnimationId
-        end
-    end
-end
-
-local function ApplyAnimation14(Animate, Humanoid)
-    local pack = RunAnimations["Run Animation 14"]
-    Animate.idle.Animation1.AnimationId = pack.Idle1
-    Animate.idle.Animation2.AnimationId = pack.Idle2
-    Animate.walk.WalkAnim.AnimationId = pack.Walk
-    Animate.run.RunAnim.AnimationId = pack.Run
-    Animate.jump.JumpAnim.AnimationId = pack.Jump
-    Animate.fall.FallAnim.AnimationId = pack.Fall
-    Animate.climb.ClimbAnim.AnimationId = pack.Climb
-    Animate.swim.Swim.AnimationId = pack.Swim
-    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
-    Humanoid.Jump = true
-end
-
-local function RestoreOriginal14()
-    for anim, id in pairs(OriginalAnimations14) do
-        if anim and anim:IsA("Animation") then
-            anim.AnimationId = id
-        end
-    end
-end
-
------| FUNGSI UNTUK RUN ANIMATION 15 |-----
-local function SaveOriginal15(Animate)
-    OriginalAnimations15 = {}
-    for _, child in ipairs(Animate:GetDescendants()) do
-        if child:IsA("Animation") then
-            OriginalAnimations15[child] = child.AnimationId
-        end
-    end
-end
-
-local function ApplyAnimation15(Animate, Humanoid)
-    local pack = RunAnimations["Run Animation 15"]
-    Animate.idle.Animation1.AnimationId = pack.Idle1
-    Animate.idle.Animation2.AnimationId = pack.Idle2
-    Animate.walk.WalkAnim.AnimationId = pack.Walk
-    Animate.run.RunAnim.AnimationId = pack.Run
-    Animate.jump.JumpAnim.AnimationId = pack.Jump
-    Animate.fall.FallAnim.AnimationId = pack.Fall
-    Animate.climb.ClimbAnim.AnimationId = pack.Climb
-    Animate.swim.Swim.AnimationId = pack.Swim
-    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
-    Humanoid.Jump = true
-end
-
-local function RestoreOriginal15()
-    for anim, id in pairs(OriginalAnimations15) do
-        if anim and anim:IsA("Animation") then
-            anim.AnimationId = id
-        end
-    end
-end
-
------| FUNGSI UNTUK RUN ANIMATION 16 |-----
-local function SaveOriginal16(Animate)
-    OriginalAnimations16 = {}
-    for _, child in ipairs(Animate:GetDescendants()) do
-        if child:IsA("Animation") then
-            OriginalAnimations16[child] = child.AnimationId
-        end
-    end
-end
-
-local function ApplyAnimation16(Animate, Humanoid)
-    local pack = RunAnimations["Run Animation 16"]
-    Animate.idle.Animation1.AnimationId = pack.Idle1
-    Animate.idle.Animation2.AnimationId = pack.Idle2
-    Animate.walk.WalkAnim.AnimationId = pack.Walk
-    Animate.run.RunAnim.AnimationId = pack.Run
-    Animate.jump.JumpAnim.AnimationId = pack.Jump
-    Animate.fall.FallAnim.AnimationId = pack.Fall
-    Animate.climb.ClimbAnim.AnimationId = pack.Climb
-    Animate.swim.Swim.AnimationId = pack.Swim
-    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
-    Humanoid.Jump = true
-end
-
-local function RestoreOriginal16()
-    for anim, id in pairs(OriginalAnimations16) do
-        if anim and anim:IsA("Animation") then
-            anim.AnimationId = id
-        end
-    end
-end
-
------| FUNGSI UNTUK RUN ANIMATION 17 |-----
-local function SaveOriginal17(Animate)
-    OriginalAnimations17 = {}
-    for _, child in ipairs(Animate:GetDescendants()) do
-        if child:IsA("Animation") then
-            OriginalAnimations17[child] = child.AnimationId
-        end
-    end
-end
-
-local function ApplyAnimation17(Animate, Humanoid)
-    local pack = RunAnimations["Run Animation 17"]
-    Animate.idle.Animation1.AnimationId = pack.Idle1
-    Animate.idle.Animation2.AnimationId = pack.Idle2
-    Animate.walk.WalkAnim.AnimationId = pack.Walk
-    Animate.run.RunAnim.AnimationId = pack.Run
-    Animate.jump.JumpAnim.AnimationId = pack.Jump
-    Animate.fall.FallAnim.AnimationId = pack.Fall
-    Animate.climb.ClimbAnim.AnimationId = pack.Climb
-    Animate.swim.Swim.AnimationId = pack.Swim
-    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
-    Humanoid.Jump = true
-end
-
-local function RestoreOriginal17()
-    for anim, id in pairs(OriginalAnimations17) do
-        if anim and anim:IsA("Animation") then
-            anim.AnimationId = id
-        end
-    end
-end
-
------| FUNGSI UNTUK RUN ANIMATION 18 |-----
-local function SaveOriginal18(Animate)
-    OriginalAnimations18 = {}
-    for _, child in ipairs(Animate:GetDescendants()) do
-        if child:IsA("Animation") then
-            OriginalAnimations18[child] = child.AnimationId
-        end
-    end
-end
-
-local function ApplyAnimation18(Animate, Humanoid)
-    local pack = RunAnimations["Run Animation 18"]
-    Animate.idle.Animation1.AnimationId = pack.Idle1
-    Animate.idle.Animation2.AnimationId = pack.Idle2
-    Animate.walk.WalkAnim.AnimationId = pack.Walk
-    Animate.run.RunAnim.AnimationId = pack.Run
-    Animate.jump.JumpAnim.AnimationId = pack.Jump
-    Animate.fall.FallAnim.AnimationId = pack.Fall
-    Animate.climb.ClimbAnim.AnimationId = pack.Climb
-    Animate.swim.Swim.AnimationId = pack.Swim
-    Animate.swimidle.SwimIdle.AnimationId = pack.SwimIdle
-    Humanoid.Jump = true
-end
-
-local function RestoreOriginal18()
-    for anim, id in pairs(OriginalAnimations18) do
-        if anim and anim:IsA("Animation") then
-            anim.AnimationId = id
-        end
-    end
-end
-
--------------------------------------------------------------
------| TOGGLE RUN ANIMATION 1 |-----
-RunAnimationTab:CreateToggle({
-    Name = "[◉] Run Animation 1",
-    CurrentValue = false,
-    Flag = "RunAnim1Toggle",
-    Callback = function(Value)
-        local Char = Players.LocalPlayer.Character
-        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
-            local Animate = Char.Animate
-            local Humanoid = Char.Humanoid
-            
             if Value then
-                SaveOriginal1(Animate)
-                ApplyAnimation1(Animate, Humanoid)
+                SaveOriginal(Char)
+                ApplyAnimation(Char, name)
                 Rayfield:Notify({
                     Image = "person-standing",
-                    Title = "Run Animation 1",
+                    Title = name,
                     Content = "Berhasil diterapkan.",
                     Duration = 3
                 })
             else
-                RestoreOriginal1()
+                RestoreOriginal(Char)
                 Rayfield:Notify({
                     Image = "person-standing",
-                    Title = "Run Animation 1",
+                    Title = name,
                     Content = "Berhasil dimatikan.",
                     Duration = 3
                 })
             end
-        end
-    end,
-})
-
------| TOGGLE RUN ANIMATION 2 |-----
-RunAnimationTab:CreateToggle({
-    Name = "[◉] Run Animation 2",
-    CurrentValue = false,
-    Flag = "RunAnim2Toggle",
-    Callback = function(Value)
-        local Char = Players.LocalPlayer.Character
-        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
-            local Animate = Char.Animate
-            local Humanoid = Char.Humanoid
-            
-            if Value then
-                SaveOriginal2(Animate)
-                ApplyAnimation2(Animate, Humanoid)
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 2",
-                    Content = "Berhasil diterapkan.",
-                    Duration = 3
-                })
-            else
-                RestoreOriginal2()
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 2",
-                    Content = "Berhasil dimatikan.",
-                    Duration = 3
-                })
-            end
-        end
-    end,
-})
-
------| TOGGLE RUN ANIMATION 3 |-----
-RunAnimationTab:CreateToggle({
-    Name = "[◉] Run Animation 3",
-    CurrentValue = false,
-    Flag = "RunAnim3Toggle",
-    Callback = function(Value)
-        local Char = Players.LocalPlayer.Character
-        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
-            local Animate = Char.Animate
-            local Humanoid = Char.Humanoid
-            
-            if Value then
-                SaveOriginal3(Animate)
-                ApplyAnimation3(Animate, Humanoid)
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 3",
-                    Content = "Berhasil diterapkan.",
-                    Duration = 3
-                })
-            else
-                RestoreOriginal3()
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 3",
-                    Content = "Berhasil dimatikan.",
-                    Duration = 3
-                })
-            end
-        end
-    end,
-})
-
------| TOGGLE RUN ANIMATION 4 |-----
-RunAnimationTab:CreateToggle({
-    Name = "[◉] Run Animation 4",
-    CurrentValue = false,
-    Flag = "RunAnim4Toggle",
-    Callback = function(Value)
-        local Char = Players.LocalPlayer.Character
-        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
-            local Animate = Char.Animate
-            local Humanoid = Char.Humanoid
-            
-            if Value then
-                SaveOriginal4(Animate)
-                ApplyAnimation4(Animate, Humanoid)
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 4",
-                    Content = "Berhasil diterapkan.",
-                    Duration = 3
-                })
-            else
-                RestoreOriginal4()
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 4",
-                    Content = "Berhasil dimatikan.",
-                    Duration = 3
-                })
-            end
-        end
-    end,
-})
-
------| TOGGLE RUN ANIMATION 5 |-----
-RunAnimationTab:CreateToggle({
-    Name = "[◉] Run Animation 5",
-    CurrentValue = false,
-    Flag = "RunAnim5Toggle",
-    Callback = function(Value)
-        local Char = Players.LocalPlayer.Character
-        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
-            local Animate = Char.Animate
-            local Humanoid = Char.Humanoid
-            
-            if Value then
-                SaveOriginal5(Animate)
-                ApplyAnimation5(Animate, Humanoid)
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 5",
-                    Content = "Berhasil diterapkan.",
-                    Duration = 3
-                })
-            else
-                RestoreOriginal5()
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 5",
-                    Content = "Berhasil dimatikan.",
-                    Duration = 3
-                })
-            end
-        end
-    end,
-})
-
------| TOGGLE RUN ANIMATION 6 |-----
-RunAnimationTab:CreateToggle({
-    Name = "[◉] Run Animation 6",
-    CurrentValue = false,
-    Flag = "RunAnim6Toggle",
-    Callback = function(Value)
-        local Char = Players.LocalPlayer.Character
-        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
-            local Animate = Char.Animate
-            local Humanoid = Char.Humanoid
-            
-            if Value then
-                SaveOriginal6(Animate)
-                ApplyAnimation6(Animate, Humanoid)
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 6",
-                    Content = "Berhasil diterapkan.",
-                    Duration = 3
-                })
-            else
-                RestoreOriginal6()
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 6",
-                    Content = "Berhasil dimatikan.",
-                    Duration = 3
-                })
-            end
-        end
-    end,
-})
-
------| TOGGLE RUN ANIMATION 7 |-----
-RunAnimationTab:CreateToggle({
-    Name = "[◉] Run Animation 7",
-    CurrentValue = false,
-    Flag = "RunAnim7Toggle",
-    Callback = function(Value)
-        local Char = Players.LocalPlayer.Character
-        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
-            local Animate = Char.Animate
-            local Humanoid = Char.Humanoid
-            
-            if Value then
-                SaveOriginal7(Animate)
-                ApplyAnimation7(Animate, Humanoid)
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 7",
-                    Content = "Berhasil diterapkan.",
-                    Duration = 3
-                })
-            else
-                RestoreOriginal7()
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 7",
-                    Content = "Berhasil dimatikan.",
-                    Duration = 3
-                })
-            end
-        end
-    end,
-})
-
------| TOGGLE RUN ANIMATION 8 |-----
-RunAnimationTab:CreateToggle({
-    Name = "[◉] Run Animation 8",
-    CurrentValue = false,
-    Flag = "RunAnim8Toggle",
-    Callback = function(Value)
-        local Char = Players.LocalPlayer.Character
-        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
-            local Animate = Char.Animate
-            local Humanoid = Char.Humanoid
-            
-            if Value then
-                SaveOriginal8(Animate)
-                ApplyAnimation8(Animate, Humanoid)
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 8",
-                    Content = "Berhasil diterapkan.",
-                    Duration = 3
-                })
-            else
-                RestoreOriginal8()
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 8",
-                    Content = "Berhasil dimatikan.",
-                    Duration = 3
-                })
-            end
-        end
-    end,
-})
-
------| TOGGLE RUN ANIMATION 9 |-----
-RunAnimationTab:CreateToggle({
-    Name = "[◉] Run Animation 9",
-    CurrentValue = false,
-    Flag = "RunAnim9Toggle",
-    Callback = function(Value)
-        local Char = Players.LocalPlayer.Character
-        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
-            local Animate = Char.Animate
-            local Humanoid = Char.Humanoid
-            
-            if Value then
-                SaveOriginal9(Animate)
-                ApplyAnimation9(Animate, Humanoid)
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 9",
-                    Content = "Berhasil diterapkan.",
-                    Duration = 3
-                })
-            else
-                RestoreOriginal9()
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 9",
-                    Content = "Berhasil dimatikan.",
-                    Duration = 3
-                })
-            end
-        end
-    end,
-})
-
------| TOGGLE RUN ANIMATION 10 |-----
-RunAnimationTab:CreateToggle({
-    Name = "[◉] Run Animation 10",
-    CurrentValue = false,
-    Flag = "RunAnim10Toggle",
-    Callback = function(Value)
-        local Char = Players.LocalPlayer.Character
-        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
-            local Animate = Char.Animate
-            local Humanoid = Char.Humanoid
-            
-            if Value then
-                SaveOriginal10(Animate)
-                ApplyAnimation10(Animate, Humanoid)
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 10",
-                    Content = "Berhasil diterapkan.",
-                    Duration = 3
-                })
-            else
-                RestoreOriginal10()
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 10",
-                    Content = "Berhasil dimatikan.",
-                    Duration = 3
-                })
-            end
-        end
-    end,
-})
-
------| TOGGLE RUN ANIMATION 11 |-----
-RunAnimationTab:CreateToggle({
-    Name = "[◉] Run Animation 11",
-    CurrentValue = false,
-    Flag = "RunAnim11Toggle",
-    Callback = function(Value)
-        local Char = Players.LocalPlayer.Character
-        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
-            local Animate = Char.Animate
-            local Humanoid = Char.Humanoid
-            
-            if Value then
-                SaveOriginal11(Animate)
-                ApplyAnimation11(Animate, Humanoid)
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 11",
-                    Content = "Berhasil diterapkan.",
-                    Duration = 3
-                })
-            else
-                RestoreOriginal11()
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 11",
-                    Content = "Berhasil dimatikan.",
-                    Duration = 3
-                })
-            end
-        end
-    end,
-})
-
------| TOGGLE RUN ANIMATION 12 |-----
-RunAnimationTab:CreateToggle({
-    Name = "[◉] Run Animation 12",
-    CurrentValue = false,
-    Flag = "RunAnim12Toggle",
-    Callback = function(Value)
-        local Char = Players.LocalPlayer.Character
-        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
-            local Animate = Char.Animate
-            local Humanoid = Char.Humanoid
-            
-            if Value then
-                SaveOriginal12(Animate)
-                ApplyAnimation12(Animate, Humanoid)
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 12",
-                    Content = "Berhasil diterapkan.",
-                    Duration = 3
-                })
-            else
-                RestoreOriginal12()
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 12",
-                    Content = "Berhasil dimatikan.",
-                    Duration = 3
-                })
-            end
-        end
-    end,
-})
-
------| TOGGLE RUN ANIMATION 13 |-----
-RunAnimationTab:CreateToggle({
-    Name = "[◉] Run Animation 13",
-    CurrentValue = false,
-    Flag = "RunAnim13Toggle",
-    Callback = function(Value)
-        local Char = Players.LocalPlayer.Character
-        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
-            local Animate = Char.Animate
-            local Humanoid = Char.Humanoid
-            
-            if Value then
-                SaveOriginal13(Animate)
-                ApplyAnimation13(Animate, Humanoid)
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 13",
-                    Content = "Berhasil diterapkan.",
-                    Duration = 3
-                })
-            else
-                RestoreOriginal13()
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 13",
-                    Content = "Berhasil dimatikan.",
-                    Duration = 3
-                })
-            end
-        end
-    end,
-})
-
------| TOGGLE RUN ANIMATION 14 |-----
-RunAnimationTab:CreateToggle({
-    Name = "[◉] Run Animation 14",
-    CurrentValue = false,
-    Flag = "RunAnim14Toggle",
-    Callback = function(Value)
-        local Char = Players.LocalPlayer.Character
-        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
-            local Animate = Char.Animate
-            local Humanoid = Char.Humanoid
-            
-            if Value then
-                SaveOriginal14(Animate)
-                ApplyAnimation14(Animate, Humanoid)
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 14",
-                    Content = "Berhasil diterapkan.",
-                    Duration = 3
-                })
-            else
-                RestoreOriginal14()
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 14",
-                    Content = "Berhasil dimatikan.",
-                    Duration = 3
-                })
-            end
-        end
-    end,
-})
-
------| TOGGLE RUN ANIMATION 15 |-----
-RunAnimationTab:CreateToggle({
-    Name = "[◉] Run Animation 15",
-    CurrentValue = false,
-    Flag = "RunAnim15Toggle",
-    Callback = function(Value)
-        local Char = Players.LocalPlayer.Character
-        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
-            local Animate = Char.Animate
-            local Humanoid = Char.Humanoid
-            
-            if Value then
-                SaveOriginal15(Animate)
-                ApplyAnimation15(Animate, Humanoid)
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 15",
-                    Content = "Berhasil diterapkan.",
-                    Duration = 3
-                })
-            else
-                RestoreOriginal15()
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 15",
-                    Content = "Berhasil dimatikan.",
-                    Duration = 3
-                })
-            end
-        end
-    end,
-})
-
------| TOGGLE RUN ANIMATION 16 |-----
-RunAnimationTab:CreateToggle({
-    Name = "[◉] Run Animation 16",
-    CurrentValue = false,
-    Flag = "RunAnim16Toggle",
-    Callback = function(Value)
-        local Char = Players.LocalPlayer.Character
-        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
-            local Animate = Char.Animate
-            local Humanoid = Char.Humanoid
-            
-            if Value then
-                SaveOriginal16(Animate)
-                ApplyAnimation16(Animate, Humanoid)
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 16",
-                    Content = "Berhasil diterapkan.",
-                    Duration = 3
-                })
-            else
-                RestoreOriginal16()
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 16",
-                    Content = "Berhasil dimatikan.",
-                    Duration = 3
-                })
-            end
-        end
-    end,
-})
-
------| TOGGLE RUN ANIMATION 17 |-----
-RunAnimationTab:CreateToggle({
-    Name = "[◉] Run Animation 17",
-    CurrentValue = false,
-    Flag = "RunAnim17Toggle",
-    Callback = function(Value)
-        local Char = Players.LocalPlayer.Character
-        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
-            local Animate = Char.Animate
-            local Humanoid = Char.Humanoid
-            
-            if Value then
-                SaveOriginal16(Animate)
-                ApplyAnimation16(Animate, Humanoid)
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 17",
-                    Content = "Berhasil diterapkan.",
-                    Duration = 3
-                })
-            else
-                RestoreOriginal16()
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 17",
-                    Content = "Berhasil dimatikan.",
-                    Duration = 3
-                })
-            end
-        end
-    end,
-})
-
------| TOGGLE RUN ANIMATION 18 |-----
-RunAnimationTab:CreateToggle({
-    Name = "[◉] Run Animation 18",
-    CurrentValue = false,
-    Flag = "RunAnim18Toggle",
-    Callback = function(Value)
-        local Char = Players.LocalPlayer.Character
-        if Char and Char:FindFirstChild("Animate") and Char:FindFirstChild("Humanoid") then
-            local Animate = Char.Animate
-            local Humanoid = Char.Humanoid
-            
-            if Value then
-                SaveOriginal16(Animate)
-                ApplyAnimation16(Animate, Humanoid)
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 18",
-                    Content = "Berhasil diterapkan.",
-                    Duration = 3
-                })
-            else
-                RestoreOriginal16()
-                Rayfield:Notify({
-                    Image = "person-standing",
-                    Title = "Run Animation 18",
-                    Content = "Berhasil dimatikan.",
-                    Duration = 3
-                })
-            end
-        end
-    end,
-})
---| =========================================================== |--
---| RUN ANIMATION - END                                         |--
---| =========================================================== |--
-
-
+        end,
+    })
+end
 
 --| =========================================================== |--
 --| FINDING SERVER                                              |--
