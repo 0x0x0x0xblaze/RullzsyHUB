@@ -56,7 +56,7 @@ local UpdateTab = Window:CreateTab("Update Script", "file")
 --| =========================================================== |--
 --| USER INTERFACE                                              |--
 --| =========================================================== |--
-local Section = ScriptTab:CreateSection("🔴 Total Map: 16")
+local Section = ScriptTab:CreateSection("🔴 Total Map: 17")
 
 local Divider = ScriptTab:CreateDivider()
 
@@ -186,6 +186,14 @@ ScriptTab:CreateButton({
 	Callback = function()
 		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Yagesya...", Duration=4})
 	    loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_yagesya.lua"))()
+	end
+})
+
+ScriptTab:CreateButton({
+	Name = "[◉] Mount Gemi",
+	Callback = function()
+		Rayfield:Notify({Title="Executing", Image="file", Content="Loading Mount Gemi...", Duration=4})
+	    loadstring(game:HttpGet("https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/scripts/mount_gemi.lua"))()
 	end
 })
 

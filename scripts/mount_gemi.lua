@@ -38,7 +38,7 @@ local RedDarkTheme = {
 
 -- Create Window
 local Window = Rayfield:CreateWindow({
-    Name = "RullzsyHUB | Mount Yagesya",
+    Name = "RullzsyHUB | Mount Gemi",
     Icon = "braces",
     LoadingTitle = "Created By RullzsyHUB",
     LoadingSubtitle = "Follow Tiktok: @rullzsy99",
@@ -400,7 +400,7 @@ BypassTab:CreateToggle({
 --| =========================================================== |--
 -- Folder Path Auto Walk
 local mainFolder = "X_RULLZSYHUB_X"
-local jsonFolder = mainFolder .. "/json_mount_yagesya_patch_001"
+local jsonFolder = mainFolder .. "/json_mount_gemi_patch_001"
 if not isfolder(mainFolder) then
     makefolder(mainFolder)
 end
@@ -409,7 +409,7 @@ if not isfolder(jsonFolder) then
 end
 
 -- JSON Auto Walk Files
-local baseURL = "https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/json/json_mount_yagesya/"
+local baseURL = "https://raw.githubusercontent.com/0x0x0x0xblaze/RullzsyHUB/refs/heads/main/json/json_mount_gemi/"
 local jsonFiles = {
     "spawnpoint.json",
     "checkpoint_1.json",
@@ -417,6 +417,51 @@ local jsonFiles = {
     "checkpoint_3.json",
     "checkpoint_4.json",
     "checkpoint_5.json",
+    "checkpoint_6.json",
+    "checkpoint_7.json",
+    "checkpoint_8.json",
+    "checkpoint_9.json",
+    "checkpoint_10.json",
+    "checkpoint_11.json",
+    "checkpoint_12.json",
+    "checkpoint_13.json",
+    "checkpoint_14.json",
+    "checkpoint_15.json",
+    "checkpoint_16.json",
+    "checkpoint_17.json",
+    "checkpoint_18.json",
+    "checkpoint_19.json",
+    "checkpoint_20.json",
+    "checkpoint_21.json",
+    "checkpoint_22.json",
+    "checkpoint_23.json",
+    "checkpoint_24.json",
+    "checkpoint_25.json",
+    "checkpoint_26.json",
+    "checkpoint_27.json",
+    "checkpoint_28.json",
+    "checkpoint_29.json",
+    "checkpoint_30.json",
+    "checkpoint_31.json",
+    "checkpoint_32.json",
+    "checkpoint_33.json",
+    "checkpoint_34.json",
+    "checkpoint_35.json",
+    "checkpoint_36.json",
+    "checkpoint_37.json",
+    "checkpoint_38.json",
+    "checkpoint_39.json",
+    "checkpoint_40.json",
+    "checkpoint_41.json",
+    "checkpoint_42.json",
+    "checkpoint_43.json",
+    "checkpoint_44.json",
+    "checkpoint_45.json",
+    "checkpoint_46.json",
+    "checkpoint_47.json",
+    "checkpoint_48.json",
+    "checkpoint_49.json",
+    "checkpoint_50.json",
 }
 
 -- Variables Auto Walk
@@ -817,117 +862,182 @@ local function getNextCheckpointIndex(currentIndex)
 end
 
 local function playCheckpointSequence(startIndex)
-    if not isLoopingEnabled then
-        return
-    end
-    
-    isLoopingActive = true
-    local currentIndex = startIndex
-    
-    local function playNext()
-        if not isLoopingEnabled or not isLoopingActive then
-            return
-        end
-        
-        local fileName = jsonFiles[currentIndex]
-        
-        local ok, path = EnsureJsonFile(fileName)
-        if not ok then
-            Rayfield:Notify({
-                Title = "Error (Loop)",
-                Content = "Gagal memuat checkpoint: " .. fileName,
-                Duration = 4,
-                Image = "ban"
-            })
-            stopPlayback(true)
-            return
-        end
-        
-        local data = loadCheckpoint(fileName)
-        if not data or #data == 0 then
-            Rayfield:Notify({
-                Title = "Error (Loop)",
-                Content = "Data checkpoint kosong: " .. fileName,
-                Duration = 4,
-                Image = "ban"
-            })
-            stopPlayback(true)
-            return
-        end
-        
-        currentCheckpoint = currentIndex
-        
-        -- ===== KODE PERBAIKAN DIMULAI =====
-        local hrp = character and character:FindFirstChild("HumanoidRootPart")
-        local humanoidLocal = character and character:FindFirstChildOfClass("Humanoid")
-        
-        if not hrp or not humanoidLocal then
-            Rayfield:Notify({
-                Title = "Error (Loop)",
-                Content = "Character tidak ditemukan!",
-                Duration = 4,
-                Image = "ban"
-            })
-            stopPlayback(true)
-            return
-        end
-        
-        local startPos = tableToVec(data[1].position)
-        local distance = (hrp.Position - startPos).Magnitude
-        
-        -- Jika jarak lebih dari 10 studs, berjalan ke titik awal dulu
-        if distance > 10 then
-            local reached = false
-            local moveConnection
-            
-            moveConnection = humanoidLocal.MoveToFinished:Connect(function(r)
-                reached = true
-                if moveConnection then
-                    moveConnection:Disconnect()
-                    moveConnection = nil
-                end
-            end)
-            
-            humanoidLocal:MoveTo(startPos)
-            
-            local startTime = tick()
-            local maxWaitTime = 15
-            
-            while not reached and (tick() - startTime) < maxWaitTime do
-                task.wait(0.1)
-            end
-            
-            if moveConnection then
-                moveConnection:Disconnect()
-                moveConnection = nil
-            end
-            
-            if not reached then
-                Rayfield:Notify({
-                    Title = "Auto Walk (Loop)",
-                    Content = "Gagal mencapai titik awal (timeout)!",
-                    Duration = 3,
-                    Image = "ban"
-                })
-                stopPlayback(true)
-                return
-            end
-        end
-        -- ===== KODE PERBAIKAN SELESAI =====
-        
-        startPlayback(data, function()
-            if not isLoopingEnabled or not isLoopingActive then
-                return
-            end
-            task.wait(0.1)
-            local nextIndex = getNextCheckpointIndex(currentIndex)
-            currentIndex = nextIndex
-            playNext()
-        end)
-    end
-    
-    playNext()
+	if not isLoopingEnabled then return end
+
+	isLoopingActive = true
+	local currentIndex = startIndex
+	local player = game.Players.LocalPlayer
+
+	local function playNext()
+		if not isLoopingEnabled or not isLoopingActive then
+			return
+		end
+
+		local fileName = jsonFiles[currentIndex]
+		local ok, path = EnsureJsonFile(fileName)
+		if not ok then
+			Rayfield:Notify({
+				Title = "Error (Loop)",
+				Content = "Gagal memuat checkpoint: " .. fileName,
+				Duration = 4,
+				Image = "ban"
+			})
+			stopPlayback(true)
+			return
+		end
+
+		local data = loadCheckpoint(fileName)
+		if not data or #data == 0 then
+			Rayfield:Notify({
+				Title = "Error (Loop)",
+				Content = "Data checkpoint kosong: " .. fileName,
+				Duration = 4,
+				Image = "ban"
+			})
+			stopPlayback(true)
+			return
+		end
+
+		currentCheckpoint = currentIndex
+		local hrp = character and character:FindFirstChild("HumanoidRootPart")
+		local humanoidLocal = character and character:FindFirstChildOfClass("Humanoid")
+
+		if not hrp or not humanoidLocal then
+			Rayfield:Notify({
+				Title = "Error (Loop)",
+				Content = "Character tidak ditemukan!",
+				Duration = 4,
+				Image = "ban"
+			})
+			stopPlayback(true)
+			return
+		end
+
+		local startPos = tableToVec(data[1].position)
+		local distance = (hrp.Position - startPos).Magnitude
+
+		-- Jika jarak lebih dari 10 studs, jalan ke titik awal dulu
+		if distance > 10 then
+			local reached = false
+			local moveConn
+			moveConn = humanoidLocal.MoveToFinished:Connect(function(r)
+				reached = true
+				if moveConn then moveConn:Disconnect() end
+			end)
+			humanoidLocal:MoveTo(startPos)
+
+			local startTime = tick()
+			while not reached and tick() - startTime < 15 do task.wait(0.1) end
+			if moveConn then moveConn:Disconnect() end
+			if not reached then
+				Rayfield:Notify({
+					Title = "Auto Walk (Loop)",
+					Content = "Gagal mencapai titik awal (timeout)!",
+					Duration = 3,
+					Image = "ban"
+				})
+				stopPlayback(true)
+				return
+			end
+		end
+
+		-- Jalankan playback checkpoint
+		startPlayback(data, function()
+			if not isLoopingEnabled or not isLoopingActive then return end
+			task.wait(0.5)
+
+			-- === FITUR BARU: AUTO RESPAWN DI AKHIR ===
+			if currentIndex == #jsonFiles then
+				Rayfield:Notify({
+					Title = "Auto Respawn",
+					Content = "Mencapai checkpoint terakhir. Respawn otomatis...",
+					Duration = 4,
+					Image = "refresh-cw"
+				})
+
+				-- Bunuh humanoid agar karakter benar-benar respawn
+				pcall(function()
+					if humanoidLocal and humanoidLocal.Parent then
+						humanoidLocal.Health = 0
+					else
+						local h = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+						if h then h.Health = 0 end
+					end
+				end)
+
+				-- Tunggu karakter benar-benar respawn
+				local newChar = player.CharacterAdded:Wait()
+				character = newChar
+				humanoid = character:WaitForChild("Humanoid")
+				local newHrp = character:WaitForChild("HumanoidRootPart")
+
+				task.wait(1.5) -- waktu tambahan agar posisi respawn stabil
+
+				-- Cari checkpoint terdekat dalam 100 studs (biasanya spawnpoint)
+				local nearestIndex = 1
+				local nearestDist = math.huge
+				for i, file in ipairs(jsonFiles) do
+					local d = loadCheckpoint(file)
+					if d and #d > 0 then
+						local pos = tableToVec(d[1].position)
+						local dist = (newHrp.Position - pos).Magnitude
+						if dist < nearestDist and dist <= 100 then
+							nearestDist = dist
+							nearestIndex = i
+						end
+					end
+				end
+
+				local nearestFile = jsonFiles[nearestIndex]
+				local nearestData = loadCheckpoint(nearestFile)
+
+				-- Bergerak ke checkpoint terdekat (biasanya spawnpoint)
+				if nearestData and #nearestData > 0 then
+					local targetPos = tableToVec(nearestData[1].position)
+					local reached = false
+					local moveConn
+					moveConn = humanoid.MoveToFinished:Connect(function(r)
+						reached = true
+						if moveConn then moveConn:Disconnect() end
+					end)
+
+					humanoid:MoveTo(targetPos)
+					local startTime = tick()
+					while not reached and tick() - startTime < 15 do task.wait(0.1) end
+					if moveConn then moveConn:Disconnect() end
+
+					if reached then
+						Rayfield:Notify({
+							Title = "Auto Respawn",
+							Content = "Kembali ke area checkpoint terdekat.",
+							Duration = 3,
+							Image = "check-check"
+						})
+						task.wait(1)
+						currentIndex = nearestIndex
+					else
+						Rayfield:Notify({
+							Title = "Auto Respawn",
+							Content = "Gagal mencapai titik awal spawnpoint!",
+							Duration = 4,
+							Image = "alert-triangle"
+						})
+						currentIndex = 1
+					end
+				else
+					currentIndex = 1
+				end
+			else
+				currentIndex = getNextCheckpointIndex(currentIndex)
+			end
+
+			playNext()
+		end)
+	end
+
+	playNext()
 end
+
 
 local function playSingleCheckpointFile(fileName, checkpointIndex)
     stopPlayback(true)
@@ -1486,6 +1596,591 @@ local CP5Toggle = AutoWalkTab:CreateToggle({
     Callback = function(Value)
         if Value then
             playSingleCheckpointFile("checkpoint_5.json", 6)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 6
+local CP6Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 6)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_6.json", 7)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 7
+local CP7Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 7)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_7.json", 8)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 8
+local CP8Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 8)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_8.json", 9)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 9
+local CP9Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 9)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_9.json", 10)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 10
+local CP10Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 10)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_10.json", 11)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 11
+local CP11Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 11)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_11.json", 12)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 12
+local CP12Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 12)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_12.json", 13)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 13
+local CP13Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 13)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_13.json", 14)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 14
+local CP14Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 14)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_14.json", 15)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 15
+local CP15Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 15)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_15.json", 16)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 16
+local CP16Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 16)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_16.json", 17)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 17
+local CP17Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 17)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_17.json", 18)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 18
+local CP18Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 18)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_18.json", 19)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 19
+local CP19Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 19)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_19.json", 20)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 20
+local CP20Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 20)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_20.json", 21)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 21
+local CP21Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 21)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_21.json", 22)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 22
+local CP22Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 22)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_22.json", 23)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 23
+local CP23Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 23)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_23.json", 24)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 24
+local CP24Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 24)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_24.json", 25)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 25
+local CP25Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 25)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_25.json", 26)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 26
+local CP26Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 26)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_26.json", 27)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 27
+local CP27Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 27)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_27.json", 28)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 28
+local CP28Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 28)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_28.json", 29)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 29
+local CP29Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 29)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_29.json", 30)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 30
+local CP30Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 30)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_30.json", 31)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 31
+local CP31Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 31)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_31.json", 32)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 32
+local CP32Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 32)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_32.json", 33)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 33
+local CP33Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 33)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_33.json", 34)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 34
+local CP34Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 34)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_34.json", 35)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 35
+local CP35Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 35)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_35.json", 36)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 36
+local CP36Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 36)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_36.json", 37)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 37
+local CP37Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 37)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_37.json", 38)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 38
+local CP38Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 38)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_38.json", 39)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 39
+local CP39Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 39)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_39.json", 40)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 40
+local CP40Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 40)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_40.json", 41)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 41
+local CP41Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 41)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_41.json", 42)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 42
+local CP42Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 42)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_42.json", 43)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 43
+local CP43Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 43)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_43.json", 44)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 44
+local CP44Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 44)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_44.json", 45)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 45
+local CP45Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 45)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_45.json", 46)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 46
+local CP46Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 46)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_46.json", 47)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 47
+local CP47Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 47)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_47.json", 48)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 48
+local CP48Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 48)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_48.json", 49)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 49
+local CP49Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 49)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_49.json", 50)
+        else
+            stopPlayback(true)
+        end
+    end,
+})
+
+-- Toggle: Checkpoint 50
+local CP50Toggle = AutoWalkTab:CreateToggle({
+    Name = "[◉] Auto Walk (Checkpoint 50)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            playSingleCheckpointFile("checkpoint_50.json", 51)
         else
             stopPlayback(true)
         end
